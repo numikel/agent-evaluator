@@ -66,6 +66,12 @@ export type BrowserSessionOptions = {
 	storageStatePath?: string;
 	slowMoMs?: number;
 	navigationTimeoutMs: number;
+	/**
+	 * Chromium binary to launch (P2 addition, additive). Resolution order in `PlaywrightSessionFactory`:
+	 * this field → env `AE_CHROMIUM_PATH` → Playwright's bundled Chromium (if installed) →
+	 * `/opt/pw-browsers/chromium` (if present) → error asking to run `npx playwright install chromium`.
+	 */
+	executablePath?: string;
 };
 
 /** A single browser tab the simulator drives. Every mutating method should be cheap to screenshot around. */
