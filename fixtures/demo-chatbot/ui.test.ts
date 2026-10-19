@@ -4,6 +4,7 @@
  * (fetch is routed to `app.request()`), so the accessible shape the simulator relies on is
  * verified end to end without a browser binary.
  */
+import { Blob as NodeBlob, File as NodeFile } from "node:buffer";
 import { readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -34,13 +35,29 @@ async function toRequestInit(init: RequestInit | undefined): Promise<RequestInit
 	};
 }
 
+/**
+ * undici's multipart parser builds `File` objects with the global constructor and then asserts
+ * they carry its own brand. Under the jsdom environment the global `File`/`Blob` are jsdom's, so
+ * on Node ≥ 24 `request.formData()` fails with an assertion. Swap in Node's classes while the
+ * server handles the request (the browser-side code under test never runs inside this window).
+ */
+async function withNodeFileGlobals<T>(run: () => Promise<T>): Promise<T> {
+	const saved = { File: globalThis.File, Blob: globalThis.Blob };
+	Object.assign(globalThis, { File: NodeFile, Blob: NodeBlob });
+	try {
+		return await run();
+	} finally {
+		Object.assign(globalThis, saved);
+	}
+}
+
 async function boot(mode?: string): Promise<void> {
 	const html = await readFile(join(PUBLIC, "index.html"), "utf8");
 	const js = await readFile(join(PUBLIC, "app.js"), "utf8");
 	window.history.replaceState({}, "", mode ? `/?mode=${mode}` : "/");
 	document.documentElement.innerHTML = html;
 	vi.stubGlobal("fetch", async (input: string | URL, init?: RequestInit) =>
-		app.request(String(input), await toRequestInit(init)),
+		withNodeFileGlobals(async () => app.request(String(input), await toRequestInit(init))),
 	);
 	vm.runInThisContext(js, { filename: "app.js" });
 }
