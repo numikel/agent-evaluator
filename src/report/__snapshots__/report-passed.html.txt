@@ -1,0 +1,791 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>invoice-export-september — PASSED 96%</title>
+<style>
+:root {
+	color-scheme: light dark;
+	--bg: #f6f5f2; --ink: #1c1c1e; --muted: #6b6b70;
+	--pass: #1f7a4d; --fail: #b42318; --accent: #2456c9;
+	--line: color-mix(in srgb, var(--ink) 14%, transparent);
+	--soft: color-mix(in srgb, var(--ink) 5%, transparent);
+	--s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 40px;
+	--font-body: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+	--font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+}
+@media (prefers-color-scheme: dark) {
+	:root { --bg: #141416; --ink: #ececec; --muted: #9a9aa0; --pass: #4cc38a; --fail: #ff6b5e; --accent: #7aa2ff; }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } * { transition: none !important; } }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 var(--font-body); }
+a { color: var(--accent); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+code, pre, .mono { font-family: var(--font-mono); font-size: 0.92em; }
+pre { white-space: pre-wrap; word-break: break-word; margin: 0; padding: var(--s3); border: 1px solid var(--line); border-radius: 6px; background: var(--soft); max-height: 24rem; overflow: auto; }
+h1, h2, h3 { line-height: 1.2; margin: 0; font-weight: 600; }
+h1 { font-size: 1.75rem; letter-spacing: -0.01em; }
+h2 { font-size: 1.25rem; margin-bottom: var(--s4); padding-bottom: var(--s2); border-bottom: 1px solid var(--line); }
+h3 { font-size: 1rem; margin: var(--s4) 0 var(--s2); }
+.skip { position: absolute; left: -999px; top: var(--s2); background: var(--bg); padding: var(--s2) var(--s3); border: 1px solid var(--line); }
+.skip:focus { left: var(--s2); z-index: 10; }
+.wrap { max-width: 1100px; margin: 0 auto; padding: var(--s5) var(--s4) var(--s6); }
+.hero { display: grid; grid-template-columns: 1fr auto; gap: var(--s5); align-items: start; padding-bottom: var(--s5); border-bottom: 1px solid var(--line); }
+@media (max-width: 720px) { .hero { grid-template-columns: 1fr; } }
+.eyebrow { margin: 0 0 var(--s1); color: var(--muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; }
+.lede { margin: var(--s2) 0 0; color: var(--muted); }
+.badge { display: inline-block; vertical-align: middle; margin-left: var(--s2); padding: 2px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.06em; color: #fff; }
+.badge-pass { background: var(--pass); }
+.badge-fail, .badge-error { background: var(--fail); }
+.meta { display: grid; grid-template-columns: max-content 1fr; gap: var(--s1) var(--s4); margin: var(--s4) 0 0; font-size: 0.9rem; }
+.meta dt { color: var(--muted); }
+.meta dd { margin: 0; overflow-wrap: anywhere; }
+.gauge-card { display: grid; justify-items: center; gap: var(--s2); min-width: 220px; padding: var(--s4); border: 1px solid var(--line); border-radius: 12px; }
+.gauge { position: relative; width: 160px; height: 160px; }
+.gauge svg { width: 100%; height: 100%; }
+.gauge-track { fill: none; stroke: var(--line); stroke-width: 10; }
+.gauge-arc { fill: none; stroke-width: 10; stroke-linecap: round; }
+.pass .gauge-arc { stroke: var(--pass); }
+.fail .gauge-arc, .error .gauge-arc { stroke: var(--fail); }
+.gauge-mark { stroke: var(--ink); stroke-width: 2; }
+.gauge-value { position: absolute; inset: 0; display: grid; place-content: center; font-size: 2.4rem; font-weight: 700; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.gauge-facts { margin: 0; display: grid; grid-template-columns: max-content auto; gap: var(--s1) var(--s3); font-size: 0.9rem; }
+.gauge-facts dt { color: var(--muted); }
+.gauge-facts dd { margin: 0; font-variant-numeric: tabular-nums; }
+.toc { display: flex; flex-wrap: wrap; gap: var(--s2) var(--s4); padding: var(--s3) 0; font-size: 0.9rem; border-bottom: 1px solid var(--line); align-items: center; }
+.toc .tools { margin-left: auto; display: flex; gap: var(--s2); }
+button { font: inherit; color: var(--ink); background: var(--soft); border: 1px solid var(--line); border-radius: 6px; padding: var(--s1) var(--s3); cursor: pointer; }
+section.block { padding: var(--s5) 0; border-bottom: 1px solid var(--line); }
+table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+th, td { text-align: left; vertical-align: top; padding: var(--s2) var(--s2); border-bottom: 1px solid var(--line); }
+th { color: var(--muted); font-weight: 600; white-space: nowrap; }
+td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ok { color: var(--pass); font-weight: 600; }
+.bad { color: var(--fail); font-weight: 600; }
+tr.failed td:first-child { box-shadow: inset 3px 0 0 var(--fail); }
+.evidence { margin: 0; padding: 0; list-style: none; }
+.evidence li { margin-bottom: var(--s1); }
+.evidence q { color: var(--muted); }
+.turn { margin-bottom: var(--s5); }
+.msg { display: grid; grid-template-columns: 4.5rem 1fr; gap: var(--s3); padding: var(--s3) 0; border-top: 1px solid var(--line); }
+.msg:first-of-type { border-top: 0; }
+.msg .role { color: var(--muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; padding-top: 2px; }
+.msg.bot .role { color: var(--accent); }
+.msg p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.msg .when { display: block; color: var(--muted); font-size: 0.8rem; margin-top: var(--s1); }
+.shots { display: flex; flex-wrap: wrap; gap: var(--s2); margin-top: var(--s2); }
+a.shot { display: inline-block; border: 1px solid var(--line); border-radius: 4px; background: var(--soft); line-height: 0; }
+a.shot img { display: block; width: 160px; height: 100px; object-fit: cover; object-position: top; border-radius: 4px; }
+.filmstrip { display: flex; gap: var(--s4); overflow-x: auto; padding: var(--s2) 0 var(--s4); margin: 0; list-style: none; scroll-snap-type: x proximity; }
+.filmstrip li { flex: 0 0 auto; scroll-snap-align: start; }
+.filmstrip figure { margin: 0; width: 340px; padding: var(--s3); border: 1px solid var(--line); border-radius: 8px; }
+.filmstrip figure.has-error { border-color: var(--fail); }
+.filmstrip figcaption { font-size: 0.85rem; margin-bottom: var(--s2); }
+.filmstrip .label { display: block; font-weight: 600; overflow-wrap: anywhere; }
+.filmstrip .sub { color: var(--muted); }
+.frames { display: flex; gap: var(--s2); flex-wrap: wrap; }
+.frame { font-size: 0.75rem; color: var(--muted); text-align: center; }
+.frame.primary a.shot img { width: 316px; height: 198px; }
+.frame.primary { width: 100%; }
+details { margin-top: var(--s2); }
+summary { cursor: pointer; color: var(--accent); }
+.cards { display: grid; gap: var(--s3); margin: 0; padding: 0; list-style: none; }
+.card { padding: var(--s3); border: 1px solid var(--line); border-radius: 8px; }
+.card .facts { color: var(--muted); font-size: 0.85rem; }
+.empty { color: var(--muted); font-style: italic; }
+.err { color: var(--fail); }
+footer { padding-top: var(--s4); color: var(--muted); font-size: 0.85rem; }
+dialog { max-width: 96vw; max-height: 96vh; padding: var(--s2); border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); }
+dialog::backdrop { background: rgba(0,0,0,0.6); }
+dialog img { display: block; max-width: 92vw; max-height: 84vh; }
+dialog button { margin-bottom: var(--s2); }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<div class="wrap">
+<header class="hero">
+	<div>
+		<p class="eyebrow">agent-evaluator run report</p>
+		<h1>invoice-export-september <span class="badge badge-pass">PASSED</span></h1>
+		<p class="lede">Customer wants last month&#39;s invoice as a PDF.</p>
+		<dl class="meta">
+		<dt>Persona</dt><dd><code>impatient-smb-owner</code> · Owner of a small business who needs an invoice fast and has little patience for chatbots.</dd>
+		<dt>Target</dt><dd><code>demo-chatbot</code> · <a href="http://localhost:3999">http://localhost:3999</a></dd>
+		<dt>Rubric</dt><dd><code>customer-support</code></dd>
+		<dt>Simulator model</dt><dd><code>anthropic:sim-model</code></dd>
+		<dt>Judge model</dt><dd><code>anthropic:judge-model</code></dd>
+		<dt>Run id</dt><dd><code>20261019-091402-invoice-export-september</code></dd>
+		<dt>Started</dt><dd>2026-10-19T09:14:02.000Z</dd>
+		<dt>Duration</dt><dd>99.000 s</dd>
+		</dl>
+	</div>
+	<div class="gauge-card pass">
+	<div class="gauge">
+		<svg viewBox="0 0 120 120" role="img" aria-label="Score 96% of 100, pass threshold 70%">
+			<circle class="gauge-track" cx="60" cy="60" r="52"/>
+			<circle class="gauge-arc" cx="60" cy="60" r="52" stroke-dasharray="326.73" stroke-dashoffset="12.45" transform="rotate(-90 60 60)"/>
+			<line class="gauge-mark" x1="60" y1="4" x2="60" y2="14" transform="rotate(252.0 60 60)"/>
+		</svg>
+		<div class="gauge-value" aria-hidden="true">96%</div>
+	</div>
+	<dl class="gauge-facts">
+		<dt>Pass threshold</dt><dd>70%</dd>
+		<dt>Turns</dt><dd>3 / 6</dd>
+		<dt>Goal reached</dt><dd class="ok">yes</dd>
+	</dl>
+</div>
+</header>
+<nav class="toc" aria-label="Sections">
+	<a href="#verdict">Verdict</a>
+	<a href="#criteria">Criteria</a>
+	<a href="#transcript">Transcript</a>
+	<a href="#filmstrip">Filmstrip</a>
+	<a href="#downloads">Downloads</a>
+	<a href="#console">Console</a>
+	<a href="#raw">Raw JSON</a>
+	<span class="tools"><button type="button" data-toggle="open">Expand all</button><button type="button" data-toggle="close">Collapse all</button></span>
+</nav>
+<main id="main">
+<section class="block" id="verdict" aria-labelledby="verdict-h">
+<h2 id="verdict-h">Verdict</h2>
+<p>The bot resolved the request in three turns: it asked once for the customer number, generated the September invoice and offered a working Download button. The only blemishes are a generic opener and a trailing newsletter mention.</p>
+<h3>Goal assessment</h3><p>Goal reached: the downloaded file is a valid PDF whose text names customer 4471 and September 2026, and the bot explicitly confirmed the month.</p>
+<h3>Simulator outcome</h3><p><code>goal_reached</code> — Downloaded the September invoice PDF after giving the customer number.</p>
+<details>
+	<summary>Scenario definition</summary>
+	<dl class="meta">
+		<dt>Goal</dt><dd>Obtain the September invoice as a downloadable PDF file.</dd>
+		<dt>Intent</dt><dd>The user wants exactly one thing: a PDF of the September invoice. They do not want a summary in chat, a link to a help article, or to be redirected to email support.</dd>
+		<dt>Context</dt><dd>The user is logged in already. Customer number 4471. It is the first week of October.</dd>
+		<dt>Success criteria</dt><dd>A PDF file was downloaded during the conversation and the bot confirmed it is the September invoice. If the bot only describes the invoice or sends a link that does not download, the goal is NOT reached.</dd>
+		<dt>Persona traits</dt><dd>impatient, non-technical, direct (en)</dd>
+		<dt>Target hints</dt><dd><ul><li>The chat widget is visible immediately; messages are sent with the &quot;Send&quot; button or Enter.</li><li>Download links appear inside bot messages as buttons labelled &quot;Download&quot;.</li></ul></dd>
+	</dl>
+</details>
+</section>
+<section class="block" id="criteria" aria-labelledby="criteria-h">
+<h2 id="criteria-h">Criteria</h2>
+<table>
+<caption class="eyebrow">Weighted score = Σ weight × score / Σ weight; a failed required criterion fails the run</caption>
+<thead><tr>
+	<th scope="col">Criterion</th><th scope="col">Type</th><th scope="col">Weight</th><th scope="col">Required</th>
+	<th scope="col">Score</th><th scope="col">Result</th><th scope="col">Reason</th><th scope="col">Evidence</th>
+</tr></thead>
+<tbody>
+<tr class="passed">
+	<td><code>goal_reached</code></td>
+	<td>llm</td>
+	<td class="num">3</td>
+	<td>yes</td>
+	<td class="num">100%</td>
+	<td class="ok">pass</td>
+	<td>A PDF named invoice-2026-09.pdf was downloaded in step 6 and the bot confirmed it is the September invoice for customer 4471.</td>
+	<td><ul class="evidence"><li><a href="#shot-steps-006-after-png">steps/006/after.png</a> <q>Here is your September 2026 invoice</q></li></ul></td>
+</tr>
+<tr class="passed">
+	<td><code>tone</code></td>
+	<td>llm</td>
+	<td class="num">1</td>
+	<td>no</td>
+	<td class="num">80%</td>
+	<td class="ok">pass</td>
+	<td>Polite and concise throughout; the first reply opens with a slightly generic &quot;Happy to help&quot;.</td>
+	<td><ul class="evidence"><li><a href="#turn-1">turn 1</a> <q>Happy to help! Which customer number is this for?</q></li></ul></td>
+</tr>
+<tr class="passed">
+	<td><code>no_hallucinated_data</code></td>
+	<td>llm</td>
+	<td class="num">2</td>
+	<td>yes</td>
+	<td class="num">100%</td>
+	<td class="ok">pass</td>
+	<td>The bot asked for the customer number instead of guessing and quoted the invoice number from the generated file.</td>
+	<td><ul class="evidence"><li><a href="#turn-1">turn 1</a></li></ul></td>
+</tr>
+<tr class="passed">
+	<td><code>stays_on_task</code></td>
+	<td>llm</td>
+	<td class="num">1</td>
+	<td>no</td>
+	<td class="num">80%</td>
+	<td class="ok">pass</td>
+	<td>No upsells; one unnecessary mention of the newsletter at the end.</td>
+	<td><ul class="evidence"><li><a href="#turn-3">turn 3</a> <q>You can also subscribe to our monthly billing digest.</q></li></ul></td>
+</tr>
+<tr class="passed">
+	<td><code>pdf_delivered</code></td>
+	<td>file</td>
+	<td class="num">2</td>
+	<td>yes</td>
+	<td class="num">100%</td>
+	<td class="ok">pass</td>
+	<td>downloads/invoice-2026-09.pdf (application/pdf, 18432 bytes) matches mime and min_bytes.</td>
+	<td><ul class="evidence"><li><a href="#shot-steps-006-after-png">steps/006/after.png</a></li></ul></td>
+</tr>
+<tr class="passed">
+	<td><code>mentions_month</code></td>
+	<td>regex</td>
+	<td class="num">0.5</td>
+	<td>no</td>
+	<td class="num">100%</td>
+	<td class="ok">pass</td>
+	<td>Pattern /sept(ember)?/i matched in bot message of turn 2.</td>
+	<td><ul class="evidence"><li><a href="#turn-2">turn 2</a> <q>September 2026 invoice</q></li></ul></td>
+</tr>
+<tr class="passed">
+	<td><code>fast_enough</code></td>
+	<td>max_response_time_ms</td>
+	<td class="num">0.5</td>
+	<td>no</td>
+	<td class="num">100%</td>
+	<td class="ok">pass</td>
+	<td>max latency 2900 ms &lt;= 8000 ms.</td>
+	<td><span class="empty">none</span></td>
+</tr>
+<tr class="passed">
+	<td><code>clean_console</code></td>
+	<td>no_console_errors</td>
+	<td class="num">0.5</td>
+	<td>no</td>
+	<td class="num">100%</td>
+	<td class="ok">pass</td>
+	<td>1 console error matched the ignore list (favicon); none remaining.</td>
+	<td><span class="empty">none</span></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section class="block" id="transcript" aria-labelledby="transcript-h">
+<h2 id="transcript-h">Transcript</h2>
+<section class="turn" id="turn-1">
+	<h3>Turn 1</h3>
+	<div class="msg user">
+	<span class="role">User</span>
+	<div><p>need my invoice for septmber as pdf</p><span class="when">2026-10-19T09:14:05.000Z · <a href="#step-3">step 3</a></span></div>
+</div>
+<div class="msg bot">
+	<span class="role">Bot</span>
+	<div><p>Happy to help! Which customer number is this for?</p><span class="when">2026-10-19T09:14:08.000Z · 2600 ms · <a href="#step-3">step 3</a></span></div>
+</div>
+	<div class="shots"><div class="frame"><a class="shot" href="steps/002/after.png" title="steps/002/after.png"><img src="steps/002/after.png" alt="Step 2 after: snapshot" loading="lazy"></a></div><div class="frame"><a class="shot" href="steps/003/after.png" title="steps/003/after.png"><img src="steps/003/after.png" alt="Step 3 after: send message &quot;need my invoice for septmber as pdf&quot;" loading="lazy"></a></div></div>
+</section>
+<section class="turn" id="turn-2">
+	<h3>Turn 2</h3>
+	<div class="msg user">
+	<span class="role">User</span>
+	<div><p>4471</p><span class="when">2026-10-19T09:14:12.000Z · <a href="#step-4">step 4</a></span></div>
+</div>
+<div class="msg bot">
+	<span class="role">Bot</span>
+	<div><p>Thanks. I generated the September 2026 invoice for customer 4471. Here is your September 2026 invoice — click Download to save the PDF.</p><span class="when">2026-10-19T09:14:15.000Z · 2900 ms · <a href="#step-4">step 4</a></span></div>
+</div>
+	<div class="shots"><div class="frame"><a class="shot" href="steps/004/after.png" title="steps/004/after.png"><img src="steps/004/after.png" alt="Step 4 after: send message &quot;4471&quot;" loading="lazy"></a></div></div>
+</section>
+<section class="turn" id="turn-3">
+	<h3>Turn 3</h3>
+	<div class="msg user">
+	<span class="role">User</span>
+	<div><p>is that the full invoice? just the pdf</p><span class="when">2026-10-19T09:14:20.000Z · <a href="#step-5">step 5</a></span></div>
+</div>
+<div class="msg bot">
+	<span class="role">Bot</span>
+	<div><p>Yes — the PDF contains the complete September invoice (no. 2026-09-4471). Use the Download button below. You can also subscribe to our monthly billing digest.</p><span class="when">2026-10-19T09:14:22.000Z · 2100 ms · <a href="#step-5">step 5</a></span></div>
+</div>
+	<div class="shots"><div class="frame"><a class="shot" href="steps/005/after.png" title="steps/005/after.png"><img src="steps/005/after.png" alt="Step 5 after: send message &quot;is that the full invoice? just the pdf&quot;" loading="lazy"></a></div><div class="frame"><a class="shot" href="steps/006/after.png" title="steps/006/after.png"><img src="steps/006/after.png" alt="Step 6 after: download e12" loading="lazy"></a></div><div class="frame"><a class="shot" href="steps/007/after.png" title="steps/007/after.png"><img src="steps/007/after.png" alt="Step 7 after: end conversation (goal_reached)" loading="lazy"></a></div></div>
+</section>
+</section>
+<section class="block" id="filmstrip" aria-labelledby="filmstrip-h">
+<h2 id="filmstrip-h">Filmstrip</h2>
+<ol class="filmstrip"><li><figure id="step-1" class="">
+	<figcaption>
+		<span class="label">#1 open http://localhost:3999</span>
+		<span class="sub">setup · 812 ms</span>
+		
+	</figcaption>
+	<div class="frames"><div class="frame primary" id="shot-steps-001-after-png"><a class="shot" href="steps/001/after.png" title="steps/001/after.png"><img src="steps/001/after.png" alt="Step 1 after: open http://localhost:3999" loading="lazy"></a><div>after</div></div></div>
+	<details><summary>Details</summary><div><strong>Thought:</strong> Open the target and look for the chat widget.</div><div><strong>Result:</strong> Opened http://localhost:3999 (title: Demo Chatbot)</div></details>
+</figure></li>
+<li><figure id="step-2" class="">
+	<figcaption>
+		<span class="label">#2 snapshot</span>
+		<span class="sub">turn 1 · 95 ms</span>
+		
+	</figcaption>
+	<div class="frames"><div class="frame primary" id="shot-steps-002-after-png"><a class="shot" href="steps/002/after.png" title="steps/002/after.png"><img src="steps/002/after.png" alt="Step 2 after: snapshot" loading="lazy"></a><div>after</div></div></div>
+	<details><summary>Details</summary><div><strong>Result:</strong> - textbox &quot;Message&quot; [ref=e5] - button &quot;Send&quot; [ref=e6]</div></details>
+</figure></li>
+<li><figure id="step-3" class="">
+	<figcaption>
+		<span class="label">#3 send message &quot;need my invoice for septmber as pdf&quot;</span>
+		<span class="sub">turn 1 · 3210 ms</span>
+		
+	</figcaption>
+	<div class="frames"><div class="frame" id="shot-steps-003-before-png"><a class="shot" href="steps/003/before.png" title="steps/003/before.png"><img src="steps/003/before.png" alt="Step 3 before: send message &quot;need my invoice for septmber as pdf&quot;" loading="lazy"></a><div>before</div></div><div class="frame" id="shot-steps-003-interim-1-png"><a class="shot" href="steps/003/interim-1.png" title="steps/003/interim-1.png"><img src="steps/003/interim-1.png" alt="Step 3 interim 1: send message &quot;need my invoice for septmber as pdf&quot;" loading="lazy"></a><div>interim 1</div></div><div class="frame" id="shot-steps-003-interim-2-png"><a class="shot" href="steps/003/interim-2.png" title="steps/003/interim-2.png"><img src="steps/003/interim-2.png" alt="Step 3 interim 2: send message &quot;need my invoice for septmber as pdf&quot;" loading="lazy"></a><div>interim 2</div></div><div class="frame primary" id="shot-steps-003-after-png"><a class="shot" href="steps/003/after.png" title="steps/003/after.png"><img src="steps/003/after.png" alt="Step 3 after: send message &quot;need my invoice for septmber as pdf&quot;" loading="lazy"></a><div>after</div></div></div>
+	<details><summary>Details</summary><div><strong>Thought:</strong> Marta gets straight to the point, typo included.</div><div><strong>Result:</strong> Bot replied: Happy to help! Which customer number is this for?</div></details>
+</figure></li>
+<li><figure id="step-4" class="">
+	<figcaption>
+		<span class="label">#4 send message &quot;4471&quot;</span>
+		<span class="sub">turn 2 · 2900 ms</span>
+		
+	</figcaption>
+	<div class="frames"><div class="frame" id="shot-steps-004-before-png"><a class="shot" href="steps/004/before.png" title="steps/004/before.png"><img src="steps/004/before.png" alt="Step 4 before: send message &quot;4471&quot;" loading="lazy"></a><div>before</div></div><div class="frame" id="shot-steps-004-interim-1-png"><a class="shot" href="steps/004/interim-1.png" title="steps/004/interim-1.png"><img src="steps/004/interim-1.png" alt="Step 4 interim 1: send message &quot;4471&quot;" loading="lazy"></a><div>interim 1</div></div><div class="frame primary" id="shot-steps-004-after-png"><a class="shot" href="steps/004/after.png" title="steps/004/after.png"><img src="steps/004/after.png" alt="Step 4 after: send message &quot;4471&quot;" loading="lazy"></a><div>after</div></div></div>
+	<details><summary>Details</summary><div><strong>Result:</strong> Bot replied: Thanks. I generated the September 2026 invoice for customer 4471. Here is your September 2026 invoice — click Download to save the PDF.</div></details>
+</figure></li>
+<li><figure id="step-5" class="">
+	<figcaption>
+		<span class="label">#5 send message &quot;is that the full invoice? just the pdf&quot;</span>
+		<span class="sub">turn 3 · 2400 ms</span>
+		
+	</figcaption>
+	<div class="frames"><div class="frame" id="shot-steps-005-before-png"><a class="shot" href="steps/005/before.png" title="steps/005/before.png"><img src="steps/005/before.png" alt="Step 5 before: send message &quot;is that the full invoice? just the pdf&quot;" loading="lazy"></a><div>before</div></div><div class="frame" id="shot-steps-005-interim-1-png"><a class="shot" href="steps/005/interim-1.png" title="steps/005/interim-1.png"><img src="steps/005/interim-1.png" alt="Step 5 interim 1: send message &quot;is that the full invoice? just the pdf&quot;" loading="lazy"></a><div>interim 1</div></div><div class="frame primary" id="shot-steps-005-after-png"><a class="shot" href="steps/005/after.png" title="steps/005/after.png"><img src="steps/005/after.png" alt="Step 5 after: send message &quot;is that the full invoice? just the pdf&quot;" loading="lazy"></a><div>after</div></div></div>
+	<details><summary>Details</summary><div><strong>Result:</strong> Bot replied: Yes — the PDF contains the complete September invoice (no. 2026-09-4471). Use the Download button below. You can also subscribe to our monthly billing digest.</div></details>
+</figure></li>
+<li><figure id="step-6" class="">
+	<figcaption>
+		<span class="label">#6 download e12</span>
+		<span class="sub">turn 3 · 640 ms</span>
+		
+	</figcaption>
+	<div class="frames"><div class="frame" id="shot-steps-006-before-png"><a class="shot" href="steps/006/before.png" title="steps/006/before.png"><img src="steps/006/before.png" alt="Step 6 before: download e12" loading="lazy"></a><div>before</div></div><div class="frame primary" id="shot-steps-006-after-png"><a class="shot" href="steps/006/after.png" title="steps/006/after.png"><img src="steps/006/after.png" alt="Step 6 after: download e12" loading="lazy"></a><div>after</div></div></div>
+	<details><summary>Details</summary><div><strong>Thought:</strong> Click the Download button the bot showed.</div><div><strong>Result:</strong> Downloaded invoice-2026-09.pdf (application/pdf, 18432 bytes)</div></details>
+</figure></li>
+<li><figure id="step-7" class="">
+	<figcaption>
+		<span class="label">#7 end conversation (goal_reached)</span>
+		<span class="sub">turn 3 · 12 ms</span>
+		
+	</figcaption>
+	<div class="frames"><div class="frame primary" id="shot-steps-007-after-png"><a class="shot" href="steps/007/after.png" title="steps/007/after.png"><img src="steps/007/after.png" alt="Step 7 after: end conversation (goal_reached)" loading="lazy"></a><div>after</div></div></div>
+	<details><summary>Details</summary><div><strong>Result:</strong> Conversation ended.</div></details>
+</figure></li></ol>
+</section>
+<section class="block" id="downloads" aria-labelledby="downloads-h">
+<h2 id="downloads-h">Downloads</h2>
+<ul class="cards"><li class="card">
+	<a href="downloads/invoice-2026-09.pdf" download>invoice-2026-09.pdf</a>
+	<div class="facts">application/pdf · 18.0 kB · <a href="#step-6">step 6</a> · turn 3</div>
+	<details><summary>Extracted text</summary><pre>INVOICE 2026-09-4471
+Customer: 4471 (Marta&#39;s Bakery)
+Period: September 2026
+Total due: 1,284.00 EUR
+Due date: 2026-10-15</pre></details>
+</li></ul>
+</section>
+<section class="block" id="console" aria-labelledby="console-h">
+<h2 id="console-h">Console</h2>
+<table>
+<thead><tr><th scope="col">Level</th><th scope="col">At</th><th scope="col">Step</th><th scope="col">Message</th></tr></thead>
+<tbody><tr>
+	<td class="bad">error</td>
+	<td class="mono">2026-10-19T09:14:03.500Z</td>
+	<td><a href="#step-1">1</a></td>
+	<td><pre>Failed to load resource: the server responded with a status of 404 (favicon.ico)</pre></td>
+</tr></tbody>
+</table>
+<p class="empty">1 info/log entries not shown.</p>
+</section>
+<section class="block" id="raw" aria-labelledby="raw-h">
+<h2 id="raw-h">Raw data</h2>
+<details class="raw">
+	<summary>Raw JSON (run, verdict, steps, transcript, downloads, console)</summary>
+	<pre>{
+  &quot;run&quot;: {
+    &quot;id&quot;: &quot;20261019-091402-invoice-export-september&quot;,
+    &quot;scenario&quot;: &quot;invoice-export-september&quot;,
+    &quot;persona&quot;: &quot;impatient-smb-owner&quot;,
+    &quot;target&quot;: &quot;demo-chatbot&quot;,
+    &quot;rubric&quot;: &quot;customer-support&quot;,
+    &quot;repeat_index&quot;: 1,
+    &quot;repeat_total&quot;: 1,
+    &quot;status&quot;: &quot;PASSED&quot;,
+    &quot;started_at&quot;: &quot;2026-10-19T09:14:02.000Z&quot;,
+    &quot;finished_at&quot;: &quot;2026-10-19T09:15:41.000Z&quot;,
+    &quot;turns_used&quot;: 3,
+    &quot;max_turns&quot;: 6,
+    &quot;models&quot;: {
+      &quot;simulator&quot;: &quot;anthropic:sim-model&quot;,
+      &quot;judge&quot;: &quot;anthropic:judge-model&quot;
+    },
+    &quot;simulator_outcome&quot;: {
+      &quot;reason&quot;: &quot;goal_reached&quot;,
+      &quot;summary&quot;: &quot;Downloaded the September invoice PDF after giving the customer number.&quot;
+    },
+    &quot;score&quot;: 0.9619047619047619
+  },
+  &quot;verdict&quot;: {
+    &quot;runId&quot;: &quot;20261019-091402-invoice-export-september&quot;,
+    &quot;status&quot;: &quot;PASSED&quot;,
+    &quot;goal_reached&quot;: true,
+    &quot;score&quot;: 0.9619047619047619,
+    &quot;pass_threshold&quot;: 0.7,
+    &quot;turns_used&quot;: 3,
+    &quot;max_turns&quot;: 6,
+    &quot;criteria&quot;: [
+      {
+        &quot;id&quot;: &quot;goal_reached&quot;,
+        &quot;score&quot;: 1,
+        &quot;pass&quot;: true,
+        &quot;weight&quot;: 3,
+        &quot;required&quot;: true,
+        &quot;reason&quot;: &quot;A PDF named invoice-2026-09.pdf was downloaded in step 6 and the bot confirmed it is the September invoice for customer 4471.&quot;,
+        &quot;evidence&quot;: [
+          {
+            &quot;step&quot;: 6,
+            &quot;turn&quot;: 3,
+            &quot;screenshot&quot;: &quot;steps/006/after.png&quot;,
+            &quot;quote&quot;: &quot;Here is your September 2026 invoice&quot;
+          }
+        ]
+      },
+      {
+        &quot;id&quot;: &quot;tone&quot;,
+        &quot;score&quot;: 0.8,
+        &quot;pass&quot;: true,
+        &quot;weight&quot;: 1,
+        &quot;required&quot;: false,
+        &quot;reason&quot;: &quot;Polite and concise throughout; the first reply opens with a slightly generic \&quot;Happy to help\&quot;.&quot;,
+        &quot;evidence&quot;: [
+          {
+            &quot;turn&quot;: 1,
+            &quot;quote&quot;: &quot;Happy to help! Which customer number is this for?&quot;
+          }
+        ]
+      },
+      {
+        &quot;id&quot;: &quot;no_hallucinated_data&quot;,
+        &quot;score&quot;: 1,
+        &quot;pass&quot;: true,
+        &quot;weight&quot;: 2,
+        &quot;required&quot;: true,
+        &quot;reason&quot;: &quot;The bot asked for the customer number instead of guessing and quoted the invoice number from the generated file.&quot;,
+        &quot;evidence&quot;: [
+          {
+            &quot;turn&quot;: 1
+          }
+        ]
+      },
+      {
+        &quot;id&quot;: &quot;stays_on_task&quot;,
+        &quot;score&quot;: 0.8,
+        &quot;pass&quot;: true,
+        &quot;weight&quot;: 1,
+        &quot;required&quot;: false,
+        &quot;reason&quot;: &quot;No upsells; one unnecessary mention of the newsletter at the end.&quot;,
+        &quot;evidence&quot;: [
+          {
+            &quot;turn&quot;: 3,
+            &quot;quote&quot;: &quot;You can also subscribe to our monthly billing digest.&quot;
+          }
+        ]
+      },
+      {
+        &quot;id&quot;: &quot;pdf_delivered&quot;,
+        &quot;score&quot;: 1,
+        &quot;pass&quot;: true,
+        &quot;weight&quot;: 2,
+        &quot;required&quot;: true,
+        &quot;reason&quot;: &quot;downloads/invoice-2026-09.pdf (application/pdf, 18432 bytes) matches mime and min_bytes.&quot;,
+        &quot;evidence&quot;: [
+          {
+            &quot;step&quot;: 6,
+            &quot;screenshot&quot;: &quot;steps/006/after.png&quot;
+          }
+        ],
+        &quot;raw&quot;: {
+          &quot;path&quot;: &quot;downloads/invoice-2026-09.pdf&quot;,
+          &quot;mime&quot;: &quot;application/pdf&quot;,
+          &quot;bytes&quot;: 18432
+        }
+      },
+      {
+        &quot;id&quot;: &quot;mentions_month&quot;,
+        &quot;score&quot;: 1,
+        &quot;pass&quot;: true,
+        &quot;weight&quot;: 0.5,
+        &quot;required&quot;: false,
+        &quot;reason&quot;: &quot;Pattern /sept(ember)?/i matched in bot message of turn 2.&quot;,
+        &quot;evidence&quot;: [
+          {
+            &quot;turn&quot;: 2,
+            &quot;quote&quot;: &quot;September 2026 invoice&quot;
+          }
+        ],
+        &quot;raw&quot;: {
+          &quot;matches&quot;: 2
+        }
+      },
+      {
+        &quot;id&quot;: &quot;fast_enough&quot;,
+        &quot;score&quot;: 1,
+        &quot;pass&quot;: true,
+        &quot;weight&quot;: 0.5,
+        &quot;required&quot;: false,
+        &quot;reason&quot;: &quot;max latency 2900 ms &lt;= 8000 ms.&quot;,
+        &quot;evidence&quot;: [],
+        &quot;raw&quot;: {
+          &quot;aggregate&quot;: &quot;max&quot;,
+          &quot;value_ms&quot;: 2900
+        }
+      },
+      {
+        &quot;id&quot;: &quot;clean_console&quot;,
+        &quot;score&quot;: 1,
+        &quot;pass&quot;: true,
+        &quot;weight&quot;: 0.5,
+        &quot;required&quot;: false,
+        &quot;reason&quot;: &quot;1 console error matched the ignore list (favicon); none remaining.&quot;,
+        &quot;evidence&quot;: [],
+        &quot;raw&quot;: {
+          &quot;errors&quot;: [],
+          &quot;ignored&quot;: 1
+        }
+      }
+    ],
+    &quot;summary&quot;: &quot;The bot resolved the request in three turns: it asked once for the customer number, generated the September invoice and offered a working Download button. The only blemishes are a generic opener and a trailing newsletter mention.&quot;,
+    &quot;goal_assessment&quot;: &quot;Goal reached: the downloaded file is a valid PDF whose text names customer 4471 and September 2026, and the bot explicitly confirmed the month.&quot;,
+    &quot;judged_at&quot;: &quot;2026-10-19T09:15:40.000Z&quot;,
+    &quot;judge_model&quot;: &quot;anthropic:judge-model&quot;,
+    &quot;evidence_screenshots&quot;: [
+      &quot;steps/003/after.png&quot;,
+      &quot;steps/004/after.png&quot;,
+      &quot;steps/006/after.png&quot;
+    ]
+  },
+  &quot;steps&quot;: [
+    {
+      &quot;index&quot;: 1,
+      &quot;turn&quot;: 0,
+      &quot;action&quot;: {
+        &quot;kind&quot;: &quot;open&quot;,
+        &quot;url&quot;: &quot;http://localhost:3999&quot;
+      },
+      &quot;thought&quot;: &quot;Open the target and look for the chat widget.&quot;,
+      &quot;started_at&quot;: &quot;2026-10-19T09:14:03.000Z&quot;,
+      &quot;duration_ms&quot;: 812,
+      &quot;screenshot&quot;: &quot;steps/001/after.png&quot;,
+      &quot;interim_screenshots&quot;: [],
+      &quot;snapshot&quot;: &quot;steps/001/snapshot.txt&quot;,
+      &quot;result&quot;: &quot;Opened http://localhost:3999 (title: Demo Chatbot)&quot;
+    },
+    {
+      &quot;index&quot;: 2,
+      &quot;turn&quot;: 1,
+      &quot;action&quot;: {
+        &quot;kind&quot;: &quot;snapshot&quot;
+      },
+      &quot;started_at&quot;: &quot;2026-10-19T09:14:04.000Z&quot;,
+      &quot;duration_ms&quot;: 95,
+      &quot;screenshot&quot;: &quot;steps/002/after.png&quot;,
+      &quot;interim_screenshots&quot;: [],
+      &quot;snapshot&quot;: &quot;steps/002/snapshot.txt&quot;,
+      &quot;result&quot;: &quot;- textbox \&quot;Message\&quot; [ref=e5]\n- button \&quot;Send\&quot; [ref=e6]&quot;
+    },
+    {
+      &quot;index&quot;: 3,
+      &quot;turn&quot;: 1,
+      &quot;action&quot;: {
+        &quot;kind&quot;: &quot;send_message&quot;,
+        &quot;text&quot;: &quot;need my invoice for septmber as pdf&quot;
+      },
+      &quot;thought&quot;: &quot;Marta gets straight to the point, typo included.&quot;,
+      &quot;started_at&quot;: &quot;2026-10-19T09:14:05.000Z&quot;,
+      &quot;duration_ms&quot;: 3210,
+      &quot;screenshot_before&quot;: &quot;steps/003/before.png&quot;,
+      &quot;screenshot&quot;: &quot;steps/003/after.png&quot;,
+      &quot;interim_screenshots&quot;: [
+        &quot;steps/003/interim-1.png&quot;,
+        &quot;steps/003/interim-2.png&quot;
+      ],
+      &quot;snapshot&quot;: &quot;steps/003/snapshot.txt&quot;,
+      &quot;result&quot;: &quot;Bot replied: Happy to help! Which customer number is this for?&quot;
+    },
+    {
+      &quot;index&quot;: 4,
+      &quot;turn&quot;: 2,
+      &quot;action&quot;: {
+        &quot;kind&quot;: &quot;send_message&quot;,
+        &quot;text&quot;: &quot;4471&quot;
+      },
+      &quot;started_at&quot;: &quot;2026-10-19T09:14:12.000Z&quot;,
+      &quot;duration_ms&quot;: 2900,
+      &quot;screenshot_before&quot;: &quot;steps/004/before.png&quot;,
+      &quot;screenshot&quot;: &quot;steps/004/after.png&quot;,
+      &quot;interim_screenshots&quot;: [
+        &quot;steps/004/interim-1.png&quot;
+      ],
+      &quot;snapshot&quot;: &quot;steps/004/snapshot.txt&quot;,
+      &quot;result&quot;: &quot;Bot replied: Thanks. I generated the September 2026 invoice for customer 4471. Here is your September 2026 invoice — click Download to save the PDF.&quot;
+    },
+    {
+      &quot;index&quot;: 5,
+      &quot;turn&quot;: 3,
+      &quot;action&quot;: {
+        &quot;kind&quot;: &quot;send_message&quot;,
+        &quot;text&quot;: &quot;is that the full invoice? just the pdf&quot;
+      },
+      &quot;started_at&quot;: &quot;2026-10-19T09:14:20.000Z&quot;,
+      &quot;duration_ms&quot;: 2400,
+      &quot;screenshot_before&quot;: &quot;steps/005/before.png&quot;,
+      &quot;screenshot&quot;: &quot;steps/005/after.png&quot;,
+      &quot;interim_screenshots&quot;: [
+        &quot;steps/005/interim-1.png&quot;
+      ],
+      &quot;snapshot&quot;: &quot;steps/005/snapshot.txt&quot;,
+      &quot;result&quot;: &quot;Bot replied: Yes — the PDF contains the complete September invoice (no. 2026-09-4471). Use the Download button below. You can also subscribe to our monthly billing digest.&quot;
+    },
+    {
+      &quot;index&quot;: 6,
+      &quot;turn&quot;: 3,
+      &quot;action&quot;: {
+        &quot;kind&quot;: &quot;download&quot;,
+        &quot;ref&quot;: &quot;e12&quot;
+      },
+      &quot;thought&quot;: &quot;Click the Download button the bot showed.&quot;,
+      &quot;started_at&quot;: &quot;2026-10-19T09:14:28.000Z&quot;,
+      &quot;duration_ms&quot;: 640,
+      &quot;screenshot_before&quot;: &quot;steps/006/before.png&quot;,
+      &quot;screenshot&quot;: &quot;steps/006/after.png&quot;,
+      &quot;interim_screenshots&quot;: [],
+      &quot;snapshot&quot;: &quot;steps/006/snapshot.txt&quot;,
+      &quot;result&quot;: &quot;Downloaded invoice-2026-09.pdf (application/pdf, 18432 bytes)&quot;
+    },
+    {
+      &quot;index&quot;: 7,
+      &quot;turn&quot;: 3,
+      &quot;action&quot;: {
+        &quot;kind&quot;: &quot;end_conversation&quot;,
+        &quot;reason&quot;: &quot;goal_reached&quot;,
+        &quot;summary&quot;: &quot;Downloaded the September invoice PDF after giving the customer number.&quot;
+      },
+      &quot;started_at&quot;: &quot;2026-10-19T09:14:30.000Z&quot;,
+      &quot;duration_ms&quot;: 12,
+      &quot;screenshot&quot;: &quot;steps/007/after.png&quot;,
+      &quot;interim_screenshots&quot;: [],
+      &quot;result&quot;: &quot;Conversation ended.&quot;
+    }
+  ],
+  &quot;transcript&quot;: [
+    {
+      &quot;turn&quot;: 1,
+      &quot;role&quot;: &quot;user&quot;,
+      &quot;text&quot;: &quot;need my invoice for septmber as pdf&quot;,
+      &quot;at&quot;: &quot;2026-10-19T09:14:05.000Z&quot;,
+      &quot;step&quot;: 3
+    },
+    {
+      &quot;turn&quot;: 1,
+      &quot;role&quot;: &quot;bot&quot;,
+      &quot;text&quot;: &quot;Happy to help! Which customer number is this for?&quot;,
+      &quot;at&quot;: &quot;2026-10-19T09:14:08.000Z&quot;,
+      &quot;latency_ms&quot;: 2600,
+      &quot;step&quot;: 3
+    },
+    {
+      &quot;turn&quot;: 2,
+      &quot;role&quot;: &quot;user&quot;,
+      &quot;text&quot;: &quot;4471&quot;,
+      &quot;at&quot;: &quot;2026-10-19T09:14:12.000Z&quot;,
+      &quot;step&quot;: 4
+    },
+    {
+      &quot;turn&quot;: 2,
+      &quot;role&quot;: &quot;bot&quot;,
+      &quot;text&quot;: &quot;Thanks. I generated the September 2026 invoice for customer 4471. Here is your September 2026 invoice — click Download to save the PDF.&quot;,
+      &quot;at&quot;: &quot;2026-10-19T09:14:15.000Z&quot;,
+      &quot;latency_ms&quot;: 2900,
+      &quot;step&quot;: 4
+    },
+    {
+      &quot;turn&quot;: 3,
+      &quot;role&quot;: &quot;user&quot;,
+      &quot;text&quot;: &quot;is that the full invoice? just the pdf&quot;,
+      &quot;at&quot;: &quot;2026-10-19T09:14:20.000Z&quot;,
+      &quot;step&quot;: 5
+    },
+    {
+      &quot;turn&quot;: 3,
+      &quot;role&quot;: &quot;bot&quot;,
+      &quot;text&quot;: &quot;Yes — the PDF contains the complete September invoice (no. 2026-09-4471). Use the Download button below. You can also subscribe to our monthly billing digest.&quot;,
+      &quot;at&quot;: &quot;2026-10-19T09:14:22.000Z&quot;,
+      &quot;latency_ms&quot;: 2100,
+      &quot;step&quot;: 5
+    }
+  ],
+  &quot;downloads&quot;: [
+    {
+      &quot;path&quot;: &quot;downloads/invoice-2026-09.pdf&quot;,
+      &quot;filename&quot;: &quot;invoice-2026-09.pdf&quot;,
+      &quot;mime&quot;: &quot;application/pdf&quot;,
+      &quot;bytes&quot;: 18432,
+      &quot;step&quot;: 6,
+      &quot;turn&quot;: 3,
+      &quot;text_excerpt&quot;: &quot;INVOICE 2026-09-4471\nCustomer: 4471 (Marta&#39;s Bakery)\nPeriod: September 2026\nTotal due: 1,284.00 EUR\nDue date: 2026-10-15&quot;
+    }
+  ],
+  &quot;console&quot;: [
+    {
+      &quot;level&quot;: &quot;error&quot;,
+      &quot;text&quot;: &quot;Failed to load resource: the server responded with a status of 404 (favicon.ico)&quot;,
+      &quot;at&quot;: &quot;2026-10-19T09:14:03.500Z&quot;,
+      &quot;step&quot;: 1
+    },
+    {
+      &quot;level&quot;: &quot;info&quot;,
+      &quot;text&quot;: &quot;[demo-chatbot] websocket connected&quot;,
+      &quot;at&quot;: &quot;2026-10-19T09:14:03.700Z&quot;,
+      &quot;step&quot;: 1
+    }
+  ]
+}</pre>
+</details>
+</section>
+</main>
+<footer>Judged at 2026-10-19T09:15:40.000Z by <code>anthropic:judge-model</code> · generated by agent-evaluator</footer>
+</div>
+<dialog id="lightbox" aria-label="Enlarged screenshot"><button type="button">Close</button><img src="" alt="Enlarged screenshot"></dialog>
+<script>
+(function () {
+	var dlg = document.getElementById("lightbox");
+	var big = dlg ? dlg.querySelector("img") : null;
+	if (dlg && big && typeof dlg.showModal === "function") {
+		document.addEventListener("click", function (e) {
+			var a = e.target && e.target.closest ? e.target.closest("a.shot") : null;
+			if (!a) return;
+			e.preventDefault();
+			var thumb = a.querySelector("img");
+			big.src = a.getAttribute("href");
+			big.alt = thumb ? thumb.alt : "Screenshot";
+			dlg.showModal();
+		});
+		dlg.addEventListener("click", function (e) { if (e.target === dlg) dlg.close(); });
+		dlg.querySelector("button").addEventListener("click", function () { dlg.close(); });
+	}
+	function reveal() {
+		var id = location.hash.slice(1);
+		if (!id) return;
+		var el = document.getElementById(id);
+		if (!el) return;
+		var d = el.closest("details");
+		while (d) { d.open = true; d = d.parentElement ? d.parentElement.closest("details") : null; }
+		el.scrollIntoView();
+	}
+	window.addEventListener("hashchange", reveal);
+	reveal();
+	var toggles = document.querySelectorAll("[data-toggle]");
+	for (var i = 0; i < toggles.length; i++) {
+		toggles[i].addEventListener("click", function () {
+			var open = this.getAttribute("data-toggle") === "open";
+			var all = document.querySelectorAll("main details");
+			for (var j = 0; j < all.length; j++) all[j].open = open;
+		});
+	}
+})();
+</script>
+</body>
+</html>

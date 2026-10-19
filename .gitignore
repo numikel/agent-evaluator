@@ -7,7 +7,7 @@ coverage/
 *.tsbuildinfo
 
 # Local workspace artifacts
-runs/
+/runs/
 .playwright/
 test-results/
 
@@ -21,6 +21,7 @@ test-results/
 .ai/
 .claude/settings.local.json
 .worktrees/
+.claude/worktrees/
 .cursor/
 CLAUDE.local.md
 .vscode/

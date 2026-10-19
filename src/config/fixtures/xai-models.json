@@ -1,0 +1,8 @@
+{
+	"_note": "Fallback shape of GET https://api.x.ai/v1/models (OpenAI-compatible list: data[].id).",
+	"object": "list",
+	"data": [
+		{ "id": "grok-4", "object": "model", "created": 1752000000, "owned_by": "xai" },
+		{ "id": "grok-3-mini", "object": "model", "created": 1740000000, "owned_by": "xai" }
+	]
+}

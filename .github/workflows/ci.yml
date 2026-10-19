@@ -26,9 +26,25 @@ jobs:
       - run: npm audit --audit-level=high
       - run: npm run lint
       - run: npm run typecheck
+      - run: npm run build
       - run: npx playwright install --with-deps chromium
       - run: npm test
-      - run: npm run build
+      - name: End-to-end tests (demo chatbot, scripted models, real Chromium)
+        run: npm run test:e2e
+        env:
+          # Keep the temp workspaces inside the checkout so the run artifacts can be uploaded.
+          AE_E2E_WORKSPACE_DIR: test-results/e2e
+          AE_E2E_KEEP: "1"
+      - name: Upload run reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-runs-node-${{ matrix.node }}
+          path: |
+            **/runs/**/report.html
+            **/runs/**/verdict.json
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Upload coverage summary
         if: matrix.node == 24
         run: npm run test:coverage -- --coverage.reporter=text-summary
