@@ -549,6 +549,11 @@ See [`CHANGELOG.md`](./CHANGELOG.md).
 4. Use Conventional Commits (`feat(judge): add latency criterion`).
 5. Add a changelog fragment under `changelog.d/`.
 
+Details, including the test-first workflow and the release procedure, are in
+[`CONTRIBUTING.md`](./CONTRIBUTING.md). This project follows the
+[code of conduct](./CODE_OF_CONDUCT.md). Security issues go through the
+[security policy](./SECURITY.md).
+
 ## License
 
 Licensed under the [Apache License 2.0](./LICENSE). Copyright 2026 numikel.

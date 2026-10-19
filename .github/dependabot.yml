@@ -1,0 +1,21 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      langchain:
+        patterns: ["langchain", "@langchain/*"]
+      dev-tooling:
+        dependency-type: development
+    ignore:
+      # Playwright minor bumps change the bundled Chromium revision; review them deliberately.
+      - dependency-name: playwright
+        update-types: ["version-update:semver-minor"]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
