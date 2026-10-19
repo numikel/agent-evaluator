@@ -40,7 +40,9 @@
 	},
 	"files": [
 		"dist",
-		"templates"
+		"templates",
+		"!templates/*.test.ts",
+		"NOTICE"
 	],
 	"scripts": {
 		"dev": "tsx watch src/cli/main.ts serve",
