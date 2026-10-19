@@ -180,5 +180,7 @@ export const endpoints = {
 	run: (id: string) => api.get<RunDetail>(`/api/runs/${seg(id)}`),
 	cancelRun: (id: string) => api.post<{ ok: boolean }>(`/api/runs/${seg(id)}/cancel`),
 	artifactUrl: (id: string, path: string) => `/api/runs/${seg(id)}/artifacts/${path}`,
+	/** A text artifact of the run (snapshot, transcript) as a string. */
+	artifact: (id: string, path: string) => api.get<string>(`/api/runs/${seg(id)}/artifacts/${path}`),
 	reportUrl: (id: string) => `/api/runs/${seg(id)}/report`,
 };

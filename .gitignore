@@ -7,7 +7,7 @@ coverage/
 *.tsbuildinfo
 
 # Local workspace artifacts
-runs/
+/runs/
 .playwright/
 test-results/
 

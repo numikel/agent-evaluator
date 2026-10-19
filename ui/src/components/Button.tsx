@@ -1,6 +1,7 @@
-import type { ButtonHTMLAttributes } from "react";
+import type { ComponentPropsWithRef } from "react";
 
-export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+/** Native button props including `ref` (a plain prop in React 19). */
+export type ButtonProps = ComponentPropsWithRef<"button"> & {
 	variant?: "primary" | "secondary" | "danger" | "ghost";
 	size?: "sm" | "md";
 };

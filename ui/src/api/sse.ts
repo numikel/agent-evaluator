@@ -7,6 +7,11 @@ export type RunEventListener = (event: RunEvent) => void;
 export type SubscribeOptions = {
 	/** Called on transport errors; `EventSource` reconnects on its own, so this is informational. */
 	onError?: (event: Event) => void;
+	/**
+	 * Called whenever the connection (re)opens. The server replays the whole history on every
+	 * connection, so a page that saw an error should reset its state here before new events land.
+	 */
+	onOpen?: () => void;
 };
 
 /** Parses one SSE `data:` payload; returns `undefined` for malformed JSON or unknown shapes. */
@@ -38,6 +43,9 @@ export function subscribeRunEvents(
 	};
 	source.onerror = (event: Event) => {
 		options.onError?.(event);
+	};
+	source.onopen = () => {
+		options.onOpen?.();
 	};
 	return () => source.close();
 }

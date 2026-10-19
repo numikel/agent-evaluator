@@ -317,4 +317,83 @@ export function runEvents(runId: string): RunEvent[] {
 	];
 }
 
+/**
+ * The complete stream of a finished run, in the order the runner emits it (P10):
+ * `run_started, status RUNNING, step/turn/message/download…, status JUDGING, judge_started,
+ * criterion×N, status PASSED, done`. Served as `events.jsonl` for the finished fixtures.
+ */
+export function fullRunEvents(runId: string): RunEvent[] {
+	const run = runs.find((r) => r.id === runId) ?? runs[0];
+	if (!run) return [];
+	const at = (s: number) => new Date(Date.parse(run.started_at) + s * 1000).toISOString();
+	const finalVerdict: Verdict = { ...verdict, runId };
+	const download = {
+		path: "downloads/invoice-09.pdf",
+		filename: "invoice-09.pdf",
+		mime: "application/pdf",
+		bytes: 1111,
+		step: 3,
+		turn: 2,
+	};
+	return [
+		...runEvents(runId).filter((e) => e.type !== "log"),
+		{
+			type: "step",
+			runId,
+			at: at(12),
+			step: {
+				index: 2,
+				turn: 1,
+				action: { kind: "send_message", text: "need my invoice for september as pdf" },
+				thought: "Ask for the invoice straight away.",
+				duration_ms: 5200,
+				interim_screenshots: ["steps/002/interim-1.png"],
+				screenshot: "steps/002/after.png",
+				snapshot: "steps/002/snapshot.txt",
+				result: "Bot replied: Sure. Which customer number?",
+			},
+		},
+		{ type: "turn", runId, at: at(13), turn: 2, max_turns: run.max_turns },
+		{
+			type: "message",
+			runId,
+			at: at(14),
+			entry: { turn: 2, role: "user", text: "4471", at: at(14) },
+		},
+		{
+			type: "message",
+			runId,
+			at: at(18),
+			entry: {
+				turn: 2,
+				role: "bot",
+				text: "Here is your September invoice.",
+				at: at(18),
+				latency_ms: 3100,
+			},
+		},
+		{
+			type: "step",
+			runId,
+			at: at(19),
+			step: {
+				index: 3,
+				turn: 2,
+				action: { kind: "download", ref: "e9" },
+				interim_screenshots: [],
+				screenshot: "steps/003/after.png",
+				snapshot: "steps/003/snapshot.txt",
+			},
+		},
+		{ type: "download", runId, at: at(20), artifact: download },
+		{ type: "status", runId, at: at(21), status: "JUDGING" },
+		{ type: "judge_started", runId, at: at(22), criteria: finalVerdict.criteria.map((c) => c.id) },
+		...finalVerdict.criteria.map(
+			(result, i): RunEvent => ({ type: "criterion", runId, at: at(23 + i), result }),
+		),
+		{ type: "status", runId, at: at(40), status: finalVerdict.status },
+		{ type: "done", runId, at: at(41), verdict: finalVerdict, report: "report.html" },
+	];
+}
+
 export const reportHtml = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Report ${PASSED_RUN_ID}</title></head><body><h1>${scenario.name}</h1><p>Score ${Math.round(verdict.score * 100)}% — ${verdict.status}</p></body></html>`;

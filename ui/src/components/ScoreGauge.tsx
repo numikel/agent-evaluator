@@ -6,7 +6,8 @@ export type ScoreGaugeProps = {
 	/** Pass threshold 0..1; shown as a caption when given. */
 	threshold?: number;
 	status?: "PASSED" | "FAILED";
-	size?: "sm" | "lg";
+	/** `xs` is a 44 px ring for table rows. */
+	size?: "xs" | "sm" | "lg";
 	/** Accessible name prefix; defaults to "Score". */
 	label?: string;
 };
@@ -27,7 +28,7 @@ export function ScoreGauge({
 	return (
 		// biome-ignore lint/a11y/useSemanticElements: a native <meter> cannot be drawn as a ring and does not expose aria-valuenow; the spec requires role="meter" + aria-value* here.
 		<div
-			className={`gauge${size === "sm" ? " gauge--sm" : ""}`}
+			className={`gauge${size === "lg" ? "" : ` gauge--${size}`}`}
 			role="meter"
 			aria-label={`${label} ${percent}%`}
 			aria-valuemin={0}

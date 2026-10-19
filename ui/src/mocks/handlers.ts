@@ -246,6 +246,15 @@ export const handlers = [
 			headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache" },
 		});
 	}),
+	http.get(`${API}/runs/:id/artifacts/events.jsonl`, ({ params }) => {
+		const id = String(params.id);
+		if (id !== fx.PASSED_RUN_ID && id !== fx.FAILED_RUN_ID) return notFound("no events yet");
+		const body = fx
+			.fullRunEvents(id)
+			.map((event) => JSON.stringify(event))
+			.join("\n");
+		return text(`${body}\n`, { headers: { "Content-Type": "application/x-ndjson" } });
+	}),
 	http.get(`${API}/runs/:id/artifacts/*`, ({ request }) => {
 		const path = new URL(request.url).pathname.split("/artifacts/")[1] ?? "";
 		return text(`mock artifact ${path}`);
