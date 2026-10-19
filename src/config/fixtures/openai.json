@@ -1,0 +1,14 @@
+{
+	"_note": "Recorded shape of GET https://api.openai.com/v1/models (documented: object, data[].id/object/created/owned_by). The endpoint carries no context or capability data.",
+	"object": "list",
+	"data": [
+		{ "id": "gpt-5", "object": "model", "created": 1754000000, "owned_by": "system" },
+		{ "id": "gpt-5-mini", "object": "model", "created": 1754000000, "owned_by": "system" },
+		{
+			"id": "text-embedding-3-small",
+			"object": "model",
+			"created": 1705948997,
+			"owned_by": "system"
+		}
+	]
+}

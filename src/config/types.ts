@@ -22,8 +22,11 @@ export type ProviderDefinition = {
 	examples: string[];
 	/** Provider model-listing endpoint (GET); undefined when the provider has none. */
 	modelsEndpoint?: string;
-	/** Which reasoning-effort knob the provider exposes; `none` means effort is ignored. */
-	effortKnob: "openai" | "anthropic" | "google" | "groq" | "ollama" | "none";
+	/**
+	 * Which reasoning-effort knob the provider exposes; `none` means effort is ignored.
+	 * (`openrouter` added in P4, additive: it maps to `modelKwargs.reasoning.effort`.)
+	 */
+	effortKnob: "openai" | "anthropic" | "google" | "groq" | "ollama" | "openrouter" | "none";
 };
 
 export type ListModelsOptions = {
@@ -69,6 +72,20 @@ export interface ModelFactory {
 	): Promise<BaseChatModel>;
 	/** Builds a chat model from an explicit `provider:model` reference. */
 	fromRef(ref: string, options?: CreateModelOptions): Promise<BaseChatModel>;
+}
+
+/**
+ * Thrown by `ModelFactory` before any provider call when the referenced provider's env variable is
+ * not set. The message names the variable, never a value. (Added in P4, additive.)
+ */
+export class ProviderNotConfiguredError extends Error {
+	override readonly name = "ProviderNotConfiguredError";
+	constructor(
+		readonly provider: string,
+		readonly env: string,
+	) {
+		super(`provider '${provider}' is not configured: set the ${env} environment variable`);
+	}
 }
 
 export type DoctorCheck = {
