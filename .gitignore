@@ -21,6 +21,7 @@ test-results/
 .ai/
 .claude/settings.local.json
 .worktrees/
+.claude/worktrees/
 .cursor/
 CLAUDE.local.md
 .vscode/
