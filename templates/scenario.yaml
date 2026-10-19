@@ -1,0 +1,30 @@
+# Scenario: what the simulated user is trying to achieve. Describe the goal and intent in natural
+# language — the simulator improvises the wording in the persona's voice. Do not script turns 1:1.
+name: invoice-export-september
+description: Customer wants last month's invoice as a PDF.
+persona: impatient-smb-owner
+target: demo-chatbot
+# rubric: customer-support   # optional; falls back to evaluator.yaml#default_rubric
+
+goal: Obtain the September invoice as a downloadable PDF file.
+intent: >
+  The user wants exactly one thing: a PDF of the September invoice. They do not want a summary in
+  chat, a link to a help article, or to be redirected to email support.
+context: >
+  The user is logged in already. Customer number 4471. It is the first week of October.
+opening_message_example: "need my invoice for september as pdf"
+examples:
+  - "customer 4471, septmber invoice please"
+  - "can i download it as a file?"
+success_criteria: >
+  A PDF file was downloaded during the conversation and the bot confirmed it is the September
+  invoice. If the bot only describes the invoice or sends a link that does not download, the goal
+  is NOT reached.
+max_turns: 6
+expected_artifacts:
+  - type: download
+    mime: application/pdf
+    description: The September invoice
+repeat: 1
+vision: false
+tags: [billing, downloads]

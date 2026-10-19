@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+coverage/
+*.tsbuildinfo
+
+# Local workspace artifacts
+runs/
+.playwright/
+test-results/
+
+# Secrets — never commit keys (see README "Secrets" section)
+.env
+.env.*
+!.env.example
+.env.keys
+
+# Editor / agent scratch
+.ai/
+.claude/settings.local.json
+.worktrees/
+.cursor/
+CLAUDE.local.md
+.vscode/
+.idea/
+.DS_Store
+*.log

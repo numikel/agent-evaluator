@@ -1,0 +1,27 @@
+# Workspace settings. API keys are NOT stored here — they come from environment variables
+# (ANTHROPIC_API_KEY, OPENAI_API_KEY, OPENROUTER_API_KEY, ...). See README "Secrets".
+models:
+  simulator: anthropic:claude-sonnet-5-5   # drives the browser as the persona
+  judge: anthropic:claude-sonnet-5-5       # scores the run against the rubric
+  # evidence_selector: anthropic:claude-haiku-5-5   # picks key screenshots; defaults to the judge model
+  # Other examples: openai:<model-id>, openrouter:<vendor/model>, google-genai:<model-id>,
+  #                 ollama:<local-model>, xai:<model-id>, mistralai:<model-id>, groq:<model-id>
+
+# temperature:            # optional per role; omitted values are not sent to the provider
+#   simulator: 0.7
+#   judge: 0
+
+# effort:                 # none | low | medium | high | max — mapped to each provider's reasoning knob
+#   simulator: low
+#   judge: high
+
+browser:
+  headless: true
+  slow_mo_ms: 0
+
+concurrency: 1            # scenarios run in parallel browser contexts
+runs_dir: runs
+
+server:
+  host: 127.0.0.1
+  port: 4747

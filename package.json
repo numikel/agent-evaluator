@@ -1,0 +1,105 @@
+{
+	"name": "agent-evaluator",
+	"version": "0.1.0",
+	"description": "Automated UI-level evaluator for chatbots and AI agents: a persona-driven simulated user drives your chatbot through a real browser, collects screenshot evidence, and an LLM judge scores the conversation against YAML rubrics.",
+	"keywords": [
+		"chatbot",
+		"evaluation",
+		"llm-as-judge",
+		"playwright",
+		"langchain",
+		"langgraph",
+		"simulated-user",
+		"agent-testing"
+	],
+	"license": "Apache-2.0",
+	"author": "numikel <81812273+numikel@users.noreply.github.com> (https://github.com/numikel)",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/numikel/agent-evaluator.git"
+	},
+	"homepage": "https://github.com/numikel/agent-evaluator#readme",
+	"bugs": {
+		"url": "https://github.com/numikel/agent-evaluator/issues"
+	},
+	"type": "module",
+	"engines": {
+		"node": ">=22.13"
+	},
+	"bin": {
+		"agent-evaluator": "dist/cli.js"
+	},
+	"main": "dist/index.js",
+	"types": "dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js"
+		},
+		"./package.json": "./package.json"
+	},
+	"files": [
+		"dist",
+		"templates"
+	],
+	"scripts": {
+		"dev": "tsx watch src/cli/main.ts serve",
+		"demo": "tsx fixtures/demo-chatbot/server.ts",
+		"build": "tsdown && vite build --config ui/vite.config.ts",
+		"start": "node dist/cli.js serve",
+		"lint": "biome check .",
+		"fix": "biome check --write .",
+		"typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p ui/tsconfig.json",
+		"test": "vitest run --project unit --project ui",
+		"test:watch": "vitest --project unit --project ui",
+		"test:coverage": "vitest run --project unit --project ui --coverage",
+		"test:e2e": "vitest run --project e2e",
+		"test:live": "AE_LIVE_LLM=1 vitest run --project e2e",
+		"check": "npm run lint && npm run typecheck",
+		"verify": "npm run lint && npm run typecheck && npm test && npm run build"
+	},
+	"dependencies": {
+		"@hono/node-server": "^2.1.5",
+		"@langchain/anthropic": "^1.5.12",
+		"@langchain/core": "^1.2.18",
+		"@langchain/google-genai": "^2.3.2",
+		"@langchain/groq": "^1.3.1",
+		"@langchain/langgraph": "^1.5.1",
+		"@langchain/mistralai": "^1.2.0",
+		"@langchain/ollama": "^1.3.0",
+		"@langchain/openai": "^1.6.2",
+		"@langchain/openrouter": "^0.4.17",
+		"@langchain/xai": "^1.4.17",
+		"commander": "^15.0.0",
+		"csv-parse": "^7.0.3",
+		"hono": "^4.13.13",
+		"langchain": "^1.5.18",
+		"mammoth": "^1.13.0",
+		"pino": "^10.4.0",
+		"playwright": "^1.64.1",
+		"unpdf": "^1.9.1",
+		"yaml": "^2.9.1",
+		"zod": "^4.6.7"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.5.15",
+		"@testing-library/jest-dom": "^7.0.1",
+		"@testing-library/react": "^16.3.3",
+		"@types/node": "^26.6.5",
+		"@types/react": "^19.3.0",
+		"@types/react-dom": "^19.3.0",
+		"@vitejs/plugin-react": "^6.1.2",
+		"@vitest/coverage-v8": "^5.0.5",
+		"jsdom": "^30.1.3",
+		"msw": "^3.0.3",
+		"pino-pretty": "^13.2.0",
+		"react": "^19.3.1",
+		"react-dom": "^19.3.1",
+		"react-router": "^8.5.0",
+		"tsdown": "^0.23.1",
+		"tsx": "^4.23.15",
+		"typescript": "^7.0.2",
+		"vite": "^8.3.4",
+		"vitest": "^5.0.5"
+	}
+}

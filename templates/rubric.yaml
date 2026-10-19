@@ -1,0 +1,61 @@
+# Rubric: what the judge scores. `goal_reached` (required, weight 3) is added automatically unless
+# you define a criterion with that id yourself. Score = Σ weight·score / Σ weight.
+name: customer-support
+description: Baseline expectations for a customer-facing support bot.
+pass_threshold: 0.7
+criteria:
+  - id: tone
+    type: llm
+    description: >
+      The bot stays polite, concise and professional even when the user is blunt. It never blames
+      the user and never uses filler like "Great question!".
+    weight: 1
+    scale: 0-5
+    levels:
+      "0": Rude, dismissive or condescending.
+      "3": Polite but verbose or generic.
+      "5": Warm, concise, adapted to the user's tone.
+
+  - id: no_hallucinated_data
+    type: llm
+    description: >
+      The bot does not invent order numbers, amounts, dates or policies. When it does not know,
+      it says so or asks.
+    weight: 2
+    required: true
+    scale: binary
+
+  - id: stays_on_task
+    type: llm
+    description: The bot does not push unrelated features or upsells while the user's request is open.
+    weight: 1
+    scale: 0-5
+
+  - id: pdf_delivered
+    type: file
+    description: A PDF file was downloaded.
+    mime: application/pdf
+    min_bytes: 500
+    weight: 2
+    required: true
+
+  - id: mentions_month
+    type: regex
+    description: The bot explicitly confirms the month.
+    pattern: "sept(ember)?"
+    flags: i
+    in: bot
+    weight: 0.5
+
+  - id: fast_enough
+    type: max_response_time_ms
+    description: Every reply arrives within 8 seconds.
+    value: 8000
+    aggregate: max
+    weight: 0.5
+
+  - id: clean_console
+    type: no_console_errors
+    description: The chat UI logs no JavaScript errors during the session.
+    ignore: ["favicon"]
+    weight: 0.5

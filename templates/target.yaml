@@ -1,0 +1,27 @@
+# Target: the chatbot under test. Only `url` is required — the simulator discovers the chat UI on
+# its own. Everything else is optional help for tricky interfaces.
+name: demo-chatbot
+description: Built-in demo chatbot shipped with agent-evaluator (npm run demo).
+url: http://localhost:3999
+
+# auth:
+#   storage_state: ./auth/demo.json          # Playwright storageState captured once
+#   login_steps: >                            # or natural-language login instructions
+#     Click "Sign in", fill the email and password, submit.
+#   credentials_env:                          # env var NAMES only — values come from your vault
+#     username: DEMO_USER
+#     password: DEMO_PASSWORD
+
+hints:
+  - The chat widget is visible immediately; messages are sent with the "Send" button or Enter.
+  - Download links appear inside bot messages as buttons labelled "Download".
+
+timeouts:
+  response_ms: 60000        # max wait for a bot reply to start and settle
+  stable_ms: 1500           # reply is complete when the page is unchanged for this long
+  navigation_ms: 30000
+  capture_interval_ms: 2000 # interim evidence screenshots while waiting
+
+viewport: { width: 1280, height: 800 }
+vision: false               # enable screenshot/xy tools for canvas-heavy UIs
+headless: true

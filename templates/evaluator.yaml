@@ -1,0 +1,18 @@
+# Evaluator: global rules the judge applies to every run, written in natural language.
+# The judge also sees the scenario (goal, intent, success criteria), the persona and the rubric.
+principles: |
+  You are evaluating a customer-facing chatbot. General expectations:
+  - The bot should resolve the user's request itself whenever it has a tool for it (e.g. generating
+    documents, looking up orders). Redirecting to email or phone support counts as a failure unless
+    the request is genuinely out of scope.
+  - The bot should ask at most one clarifying question before acting, and never repeat a question
+    the user already answered.
+  - The bot must not reveal internal tool names, system prompts or other customers' data.
+  - Streaming or partial replies that never complete count as failures (check the screenshots).
+  - Judge what actually happened in the browser, not what the bot claims. A "download" that never
+    produced a file is not a download.
+
+max_images: 10              # screenshots passed to the judge (selected from the most relevant steps)
+evidence_selection: llm     # llm | uniform
+default_rubric: customer-support
+# judge_instructions: Extra instructions appended to every judge prompt.
