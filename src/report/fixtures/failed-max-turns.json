@@ -1,0 +1,396 @@
+{
+	"run": {
+		"id": "20261019-101233-invoice-export-september",
+		"scenario": "invoice-export-september",
+		"persona": "impatient-smb-owner",
+		"target": "demo-chatbot",
+		"rubric": "customer-support",
+		"repeat_index": 2,
+		"repeat_total": 3,
+		"status": "FAILED",
+		"started_at": "2026-10-19T10:12:33.000Z",
+		"finished_at": "2026-10-19T10:14:58.000Z",
+		"turns_used": 4,
+		"max_turns": 4,
+		"models": { "simulator": "openai:sim-model", "judge": "anthropic:judge-model" },
+		"simulator_outcome": {
+			"reason": "max_turns",
+			"summary": "Turn budget exhausted: the bot kept asking for details and finally redirected to email support; no file was downloaded."
+		},
+		"score": 0.3333333333333333
+	},
+	"verdict": {
+		"runId": "20261019-101233-invoice-export-september",
+		"status": "FAILED",
+		"goal_reached": false,
+		"score": 0.3333333333333333,
+		"pass_threshold": 0.7,
+		"turns_used": 4,
+		"max_turns": 4,
+		"criteria": [
+			{
+				"id": "goal_reached",
+				"score": 0,
+				"pass": false,
+				"weight": 3,
+				"required": true,
+				"reason": "No PDF was downloaded within 4 turns; the bot ended by redirecting the user to billing@example.com.",
+				"evidence": [
+					{
+						"step": 5,
+						"turn": 4,
+						"screenshot": "steps/005/after.png",
+						"quote": "please email billing@example.com"
+					}
+				]
+			},
+			{
+				"id": "tone",
+				"score": 0.6,
+				"pass": true,
+				"weight": 1,
+				"required": false,
+				"reason": "Polite but repetitive; the bot used \"Great question!\" once.",
+				"evidence": [{ "turn": 2, "quote": "Great question!" }]
+			},
+			{
+				"id": "no_hallucinated_data",
+				"score": 1,
+				"pass": true,
+				"weight": 2,
+				"required": true,
+				"reason": "No invented figures; the bot never claimed to have generated a document.",
+				"evidence": []
+			},
+			{
+				"id": "stays_on_task",
+				"score": 0.4,
+				"pass": false,
+				"weight": 1,
+				"required": false,
+				"reason": "The bot promoted the mobile app in turn 3 while the invoice request was still open.",
+				"evidence": [{ "turn": 3, "quote": "Have you tried our new mobile app?" }]
+			},
+			{
+				"id": "pdf_delivered",
+				"score": 0,
+				"pass": false,
+				"weight": 2,
+				"required": true,
+				"reason": "No download matching application/pdf was recorded.",
+				"evidence": [],
+				"raw": { "downloads": 0 }
+			},
+			{
+				"id": "mentions_month",
+				"score": 1,
+				"pass": true,
+				"weight": 0.5,
+				"required": false,
+				"reason": "Pattern /sept(ember)?/i matched in bot message of turn 2.",
+				"evidence": [{ "turn": 2, "quote": "the September invoice" }],
+				"raw": { "matches": 1 }
+			},
+			{
+				"id": "fast_enough",
+				"score": 0,
+				"pass": false,
+				"weight": 0.5,
+				"required": false,
+				"reason": "max latency 9400 ms > 8000 ms (turn 4).",
+				"evidence": [{ "turn": 4, "step": 5, "screenshot": "steps/005/interim-3.png" }],
+				"raw": { "aggregate": "max", "value_ms": 9400 }
+			},
+			{
+				"id": "clean_console",
+				"score": 0,
+				"pass": false,
+				"weight": 0.5,
+				"required": false,
+				"reason": "1 console error not covered by the ignore list.",
+				"evidence": [{ "step": 4 }],
+				"raw": {
+					"errors": ["TypeError: Cannot read properties of undefined (reading 'url')"],
+					"ignored": 1
+				}
+			}
+		],
+		"summary": "The bot never produced the invoice. It asked for the customer number twice, pushed the mobile app, and after a 9.4 s pause told the user to email billing support. Two required criteria failed and the turn budget ran out.",
+		"goal_assessment": "Goal not reached: no file was downloaded and the final bot message redirects to email support, which the scenario explicitly counts as failure.",
+		"judged_at": "2026-10-19T10:14:57.000Z",
+		"judge_model": "anthropic:judge-model",
+		"evidence_screenshots": ["steps/002/after.png", "steps/004/after.png", "steps/005/after.png"]
+	},
+	"steps": [
+		{
+			"index": 1,
+			"turn": 0,
+			"action": { "kind": "open", "url": "http://localhost:3999" },
+			"started_at": "2026-10-19T10:12:34.000Z",
+			"duration_ms": 790,
+			"screenshot": "steps/001/after.png",
+			"interim_screenshots": [],
+			"snapshot": "steps/001/snapshot.txt",
+			"result": "Opened http://localhost:3999 (title: Demo Chatbot)"
+		},
+		{
+			"index": 2,
+			"turn": 1,
+			"action": { "kind": "send_message", "text": "invoce for september pdf" },
+			"started_at": "2026-10-19T10:12:36.000Z",
+			"duration_ms": 3100,
+			"screenshot_before": "steps/002/before.png",
+			"screenshot": "steps/002/after.png",
+			"interim_screenshots": ["steps/002/interim-1.png"],
+			"snapshot": "steps/002/snapshot.txt",
+			"result": "Bot replied: Sure! Could you tell me your customer number?"
+		},
+		{
+			"index": 3,
+			"turn": 2,
+			"action": { "kind": "send_message", "text": "4471" },
+			"started_at": "2026-10-19T10:12:45.000Z",
+			"duration_ms": 2800,
+			"screenshot_before": "steps/003/before.png",
+			"screenshot": "steps/003/after.png",
+			"interim_screenshots": ["steps/003/interim-1.png"],
+			"snapshot": "steps/003/snapshot.txt",
+			"result": "Bot replied: Great question! To locate the September invoice I need your customer number and the billing email."
+		},
+		{
+			"index": 4,
+			"turn": 3,
+			"action": { "kind": "send_message", "text": "i just said 4471. just give me the pdf" },
+			"started_at": "2026-10-19T10:12:55.000Z",
+			"duration_ms": 3300,
+			"screenshot_before": "steps/004/before.png",
+			"screenshot": "steps/004/after.png",
+			"interim_screenshots": ["steps/004/interim-1.png"],
+			"snapshot": "steps/004/snapshot.txt",
+			"result": "Bot replied: Have you tried our new mobile app? <script>alert(\"xss\")</script> It shows all invoices.",
+			"error": "console error during reply: TypeError: Cannot read properties of undefined (reading 'url')"
+		},
+		{
+			"index": 5,
+			"turn": 4,
+			"action": { "kind": "send_message", "text": "no. pdf. now." },
+			"started_at": "2026-10-19T10:13:05.000Z",
+			"duration_ms": 9800,
+			"screenshot_before": "steps/005/before.png",
+			"screenshot": "steps/005/after.png",
+			"interim_screenshots": [
+				"steps/005/interim-1.png",
+				"steps/005/interim-2.png",
+				"steps/005/interim-3.png"
+			],
+			"snapshot": "steps/005/snapshot.txt",
+			"result": "Bot replied: I am sorry, I cannot generate documents here. For invoices please email billing@example.com."
+		}
+	],
+	"transcript": [
+		{
+			"turn": 1,
+			"role": "user",
+			"text": "invoce for september pdf",
+			"at": "2026-10-19T10:12:36.000Z",
+			"step": 2
+		},
+		{
+			"turn": 1,
+			"role": "bot",
+			"text": "Sure! Could you tell me your customer number?",
+			"at": "2026-10-19T10:12:39.000Z",
+			"latency_ms": 2500,
+			"step": 2
+		},
+		{ "turn": 2, "role": "user", "text": "4471", "at": "2026-10-19T10:12:45.000Z", "step": 3 },
+		{
+			"turn": 2,
+			"role": "bot",
+			"text": "Great question! To locate the September invoice I need your customer number and the billing email.",
+			"at": "2026-10-19T10:12:47.000Z",
+			"latency_ms": 2300,
+			"step": 3
+		},
+		{
+			"turn": 3,
+			"role": "user",
+			"text": "i just said 4471. just give me the pdf",
+			"at": "2026-10-19T10:12:55.000Z",
+			"step": 4
+		},
+		{
+			"turn": 3,
+			"role": "bot",
+			"text": "Have you tried our new mobile app? <script>alert(\"xss\")</script> It shows all invoices.",
+			"at": "2026-10-19T10:12:58.000Z",
+			"latency_ms": 2700,
+			"step": 4
+		},
+		{
+			"turn": 4,
+			"role": "user",
+			"text": "no. pdf. now.",
+			"at": "2026-10-19T10:13:05.000Z",
+			"step": 5
+		},
+		{
+			"turn": 4,
+			"role": "bot",
+			"text": "I am sorry, I cannot generate documents here. For invoices please email billing@example.com.",
+			"at": "2026-10-19T10:13:14.000Z",
+			"latency_ms": 9400,
+			"step": 5
+		}
+	],
+	"downloads": [],
+	"console": [
+		{
+			"level": "error",
+			"text": "Failed to load resource: the server responded with a status of 404 (favicon.ico)",
+			"at": "2026-10-19T10:12:34.400Z",
+			"step": 1
+		},
+		{
+			"level": "error",
+			"text": "TypeError: Cannot read properties of undefined (reading 'url')\n    at renderAttachment (app.js:142:18)",
+			"at": "2026-10-19T10:12:57.100Z",
+			"step": 4
+		},
+		{
+			"level": "warn",
+			"text": "[demo-chatbot] slow reply: 9400 ms",
+			"at": "2026-10-19T10:13:14.000Z",
+			"step": 5
+		}
+	],
+	"resolved": {
+		"scenario": {
+			"name": "invoice-export-september",
+			"description": "Customer wants last month's invoice as a PDF.",
+			"persona": "impatient-smb-owner",
+			"target": "demo-chatbot",
+			"rubric": "customer-support",
+			"goal": "Obtain the September invoice as a downloadable PDF file.",
+			"intent": "The user wants exactly one thing: a PDF of the September invoice. They do not want a summary in chat, a link to a help article, or to be redirected to email support.",
+			"context": "The user is logged in already. Customer number 4471. It is the first week of October.",
+			"opening_message_example": "need my invoice for september as pdf",
+			"examples": ["customer 4471, septmber invoice please", "can i download it as a file?"],
+			"success_criteria": "A PDF file was downloaded during the conversation and the bot confirmed it is the September invoice. If the bot only describes the invoice or sends a link that does not download, the goal is NOT reached.",
+			"max_turns": 4,
+			"expected_artifacts": [
+				{ "type": "download", "mime": "application/pdf", "description": "The September invoice" }
+			],
+			"repeat": 3,
+			"vision": false,
+			"tags": ["billing", "downloads"]
+		},
+		"persona": {
+			"name": "impatient-smb-owner",
+			"description": "Owner of a small business who needs an invoice fast and has little patience for chatbots.",
+			"language": "en",
+			"traits": ["impatient", "non-technical", "direct"],
+			"interaction_style": ["short-messages", "occasional-typos", "asks-follow-up-when-unclear"],
+			"version": 1
+		},
+		"target": {
+			"name": "demo-chatbot",
+			"description": "Built-in demo chatbot shipped with agent-evaluator (npm run demo).",
+			"url": "http://localhost:3999",
+			"hints": [
+				"The chat widget is visible immediately; messages are sent with the \"Send\" button or Enter.",
+				"Download links appear inside bot messages as buttons labelled \"Download\"."
+			],
+			"timeouts": {
+				"response_ms": 60000,
+				"stable_ms": 1500,
+				"navigation_ms": 30000,
+				"capture_interval_ms": 2000
+			},
+			"viewport": { "width": 1280, "height": 800 },
+			"vision": false,
+			"headless": true
+		},
+		"rubric": {
+			"name": "customer-support",
+			"description": "Baseline expectations for a customer-facing support bot.",
+			"pass_threshold": 0.7,
+			"criteria": [
+				{
+					"id": "goal_reached",
+					"type": "llm",
+					"description": "The simulated user's goal, as defined in the scenario, was fully achieved within the turn budget. Judge strictly against the scenario's success criteria.",
+					"weight": 3,
+					"required": true,
+					"scale": "binary"
+				},
+				{
+					"id": "tone",
+					"type": "llm",
+					"description": "The bot stays polite, concise and professional even when the user is blunt. It never blames the user and never uses filler like \"Great question!\".",
+					"weight": 1,
+					"required": false,
+					"scale": "0-5"
+				},
+				{
+					"id": "no_hallucinated_data",
+					"type": "llm",
+					"description": "The bot does not invent order numbers, amounts, dates or policies. When it does not know, it says so or asks.",
+					"weight": 2,
+					"required": true,
+					"scale": "binary"
+				},
+				{
+					"id": "stays_on_task",
+					"type": "llm",
+					"description": "The bot does not push unrelated features or upsells while the user's request is open.",
+					"weight": 1,
+					"required": false,
+					"scale": "0-5"
+				},
+				{
+					"id": "pdf_delivered",
+					"type": "file",
+					"description": "A PDF file was downloaded.",
+					"mime": "application/pdf",
+					"min_bytes": 500,
+					"weight": 2,
+					"required": true
+				},
+				{
+					"id": "mentions_month",
+					"type": "regex",
+					"description": "The bot explicitly confirms the month.",
+					"pattern": "sept(ember)?",
+					"flags": "i",
+					"in": "bot",
+					"weight": 0.5,
+					"required": false
+				},
+				{
+					"id": "fast_enough",
+					"type": "max_response_time_ms",
+					"description": "Every reply arrives within 8 seconds.",
+					"value": 8000,
+					"aggregate": "max",
+					"weight": 0.5,
+					"required": false
+				},
+				{
+					"id": "clean_console",
+					"type": "no_console_errors",
+					"description": "The chat UI logs no JavaScript errors during the session.",
+					"ignore": ["favicon"],
+					"weight": 0.5,
+					"required": false
+				}
+			]
+		},
+		"evaluator": {
+			"principles": "You are evaluating a customer-facing chatbot. The bot should resolve the user's request itself whenever it has a tool for it. Redirecting to email or phone support counts as a failure unless the request is genuinely out of scope. Judge what actually happened in the browser, not what the bot claims.",
+			"max_images": 10,
+			"default_rubric": "customer-support",
+			"evidence_selection": "llm"
+		}
+	}
+}

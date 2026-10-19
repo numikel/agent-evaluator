@@ -1,0 +1,416 @@
+{
+	"run": {
+		"id": "20261019-091402-invoice-export-september",
+		"scenario": "invoice-export-september",
+		"persona": "impatient-smb-owner",
+		"target": "demo-chatbot",
+		"rubric": "customer-support",
+		"repeat_index": 1,
+		"repeat_total": 1,
+		"status": "PASSED",
+		"started_at": "2026-10-19T09:14:02.000Z",
+		"finished_at": "2026-10-19T09:15:41.000Z",
+		"turns_used": 3,
+		"max_turns": 6,
+		"models": { "simulator": "anthropic:sim-model", "judge": "anthropic:judge-model" },
+		"simulator_outcome": {
+			"reason": "goal_reached",
+			"summary": "Downloaded the September invoice PDF after giving the customer number."
+		},
+		"score": 0.9619047619047619
+	},
+	"verdict": {
+		"runId": "20261019-091402-invoice-export-september",
+		"status": "PASSED",
+		"goal_reached": true,
+		"score": 0.9619047619047619,
+		"pass_threshold": 0.7,
+		"turns_used": 3,
+		"max_turns": 6,
+		"criteria": [
+			{
+				"id": "goal_reached",
+				"score": 1,
+				"pass": true,
+				"weight": 3,
+				"required": true,
+				"reason": "A PDF named invoice-2026-09.pdf was downloaded in step 6 and the bot confirmed it is the September invoice for customer 4471.",
+				"evidence": [
+					{
+						"step": 6,
+						"turn": 3,
+						"screenshot": "steps/006/after.png",
+						"quote": "Here is your September 2026 invoice"
+					}
+				]
+			},
+			{
+				"id": "tone",
+				"score": 0.8,
+				"pass": true,
+				"weight": 1,
+				"required": false,
+				"reason": "Polite and concise throughout; the first reply opens with a slightly generic \"Happy to help\".",
+				"evidence": [{ "turn": 1, "quote": "Happy to help! Which customer number is this for?" }]
+			},
+			{
+				"id": "no_hallucinated_data",
+				"score": 1,
+				"pass": true,
+				"weight": 2,
+				"required": true,
+				"reason": "The bot asked for the customer number instead of guessing and quoted the invoice number from the generated file.",
+				"evidence": [{ "turn": 1 }]
+			},
+			{
+				"id": "stays_on_task",
+				"score": 0.8,
+				"pass": true,
+				"weight": 1,
+				"required": false,
+				"reason": "No upsells; one unnecessary mention of the newsletter at the end.",
+				"evidence": [
+					{ "turn": 3, "quote": "You can also subscribe to our monthly billing digest." }
+				]
+			},
+			{
+				"id": "pdf_delivered",
+				"score": 1,
+				"pass": true,
+				"weight": 2,
+				"required": true,
+				"reason": "downloads/invoice-2026-09.pdf (application/pdf, 18432 bytes) matches mime and min_bytes.",
+				"evidence": [{ "step": 6, "screenshot": "steps/006/after.png" }],
+				"raw": {
+					"path": "downloads/invoice-2026-09.pdf",
+					"mime": "application/pdf",
+					"bytes": 18432
+				}
+			},
+			{
+				"id": "mentions_month",
+				"score": 1,
+				"pass": true,
+				"weight": 0.5,
+				"required": false,
+				"reason": "Pattern /sept(ember)?/i matched in bot message of turn 2.",
+				"evidence": [{ "turn": 2, "quote": "September 2026 invoice" }],
+				"raw": { "matches": 2 }
+			},
+			{
+				"id": "fast_enough",
+				"score": 1,
+				"pass": true,
+				"weight": 0.5,
+				"required": false,
+				"reason": "max latency 2900 ms <= 8000 ms.",
+				"evidence": [],
+				"raw": { "aggregate": "max", "value_ms": 2900 }
+			},
+			{
+				"id": "clean_console",
+				"score": 1,
+				"pass": true,
+				"weight": 0.5,
+				"required": false,
+				"reason": "1 console error matched the ignore list (favicon); none remaining.",
+				"evidence": [],
+				"raw": { "errors": [], "ignored": 1 }
+			}
+		],
+		"summary": "The bot resolved the request in three turns: it asked once for the customer number, generated the September invoice and offered a working Download button. The only blemishes are a generic opener and a trailing newsletter mention.",
+		"goal_assessment": "Goal reached: the downloaded file is a valid PDF whose text names customer 4471 and September 2026, and the bot explicitly confirmed the month.",
+		"judged_at": "2026-10-19T09:15:40.000Z",
+		"judge_model": "anthropic:judge-model",
+		"evidence_screenshots": ["steps/003/after.png", "steps/004/after.png", "steps/006/after.png"]
+	},
+	"steps": [
+		{
+			"index": 1,
+			"turn": 0,
+			"action": { "kind": "open", "url": "http://localhost:3999" },
+			"thought": "Open the target and look for the chat widget.",
+			"started_at": "2026-10-19T09:14:03.000Z",
+			"duration_ms": 812,
+			"screenshot": "steps/001/after.png",
+			"interim_screenshots": [],
+			"snapshot": "steps/001/snapshot.txt",
+			"result": "Opened http://localhost:3999 (title: Demo Chatbot)"
+		},
+		{
+			"index": 2,
+			"turn": 1,
+			"action": { "kind": "snapshot" },
+			"started_at": "2026-10-19T09:14:04.000Z",
+			"duration_ms": 95,
+			"screenshot": "steps/002/after.png",
+			"interim_screenshots": [],
+			"snapshot": "steps/002/snapshot.txt",
+			"result": "- textbox \"Message\" [ref=e5]\n- button \"Send\" [ref=e6]"
+		},
+		{
+			"index": 3,
+			"turn": 1,
+			"action": { "kind": "send_message", "text": "need my invoice for septmber as pdf" },
+			"thought": "Marta gets straight to the point, typo included.",
+			"started_at": "2026-10-19T09:14:05.000Z",
+			"duration_ms": 3210,
+			"screenshot_before": "steps/003/before.png",
+			"screenshot": "steps/003/after.png",
+			"interim_screenshots": ["steps/003/interim-1.png", "steps/003/interim-2.png"],
+			"snapshot": "steps/003/snapshot.txt",
+			"result": "Bot replied: Happy to help! Which customer number is this for?"
+		},
+		{
+			"index": 4,
+			"turn": 2,
+			"action": { "kind": "send_message", "text": "4471" },
+			"started_at": "2026-10-19T09:14:12.000Z",
+			"duration_ms": 2900,
+			"screenshot_before": "steps/004/before.png",
+			"screenshot": "steps/004/after.png",
+			"interim_screenshots": ["steps/004/interim-1.png"],
+			"snapshot": "steps/004/snapshot.txt",
+			"result": "Bot replied: Thanks. I generated the September 2026 invoice for customer 4471. Here is your September 2026 invoice — click Download to save the PDF."
+		},
+		{
+			"index": 5,
+			"turn": 3,
+			"action": { "kind": "send_message", "text": "is that the full invoice? just the pdf" },
+			"started_at": "2026-10-19T09:14:20.000Z",
+			"duration_ms": 2400,
+			"screenshot_before": "steps/005/before.png",
+			"screenshot": "steps/005/after.png",
+			"interim_screenshots": ["steps/005/interim-1.png"],
+			"snapshot": "steps/005/snapshot.txt",
+			"result": "Bot replied: Yes — the PDF contains the complete September invoice (no. 2026-09-4471). Use the Download button below. You can also subscribe to our monthly billing digest."
+		},
+		{
+			"index": 6,
+			"turn": 3,
+			"action": { "kind": "download", "ref": "e12" },
+			"thought": "Click the Download button the bot showed.",
+			"started_at": "2026-10-19T09:14:28.000Z",
+			"duration_ms": 640,
+			"screenshot_before": "steps/006/before.png",
+			"screenshot": "steps/006/after.png",
+			"interim_screenshots": [],
+			"snapshot": "steps/006/snapshot.txt",
+			"result": "Downloaded invoice-2026-09.pdf (application/pdf, 18432 bytes)"
+		},
+		{
+			"index": 7,
+			"turn": 3,
+			"action": {
+				"kind": "end_conversation",
+				"reason": "goal_reached",
+				"summary": "Downloaded the September invoice PDF after giving the customer number."
+			},
+			"started_at": "2026-10-19T09:14:30.000Z",
+			"duration_ms": 12,
+			"screenshot": "steps/007/after.png",
+			"interim_screenshots": [],
+			"result": "Conversation ended."
+		}
+	],
+	"transcript": [
+		{
+			"turn": 1,
+			"role": "user",
+			"text": "need my invoice for septmber as pdf",
+			"at": "2026-10-19T09:14:05.000Z",
+			"step": 3
+		},
+		{
+			"turn": 1,
+			"role": "bot",
+			"text": "Happy to help! Which customer number is this for?",
+			"at": "2026-10-19T09:14:08.000Z",
+			"latency_ms": 2600,
+			"step": 3
+		},
+		{ "turn": 2, "role": "user", "text": "4471", "at": "2026-10-19T09:14:12.000Z", "step": 4 },
+		{
+			"turn": 2,
+			"role": "bot",
+			"text": "Thanks. I generated the September 2026 invoice for customer 4471. Here is your September 2026 invoice — click Download to save the PDF.",
+			"at": "2026-10-19T09:14:15.000Z",
+			"latency_ms": 2900,
+			"step": 4
+		},
+		{
+			"turn": 3,
+			"role": "user",
+			"text": "is that the full invoice? just the pdf",
+			"at": "2026-10-19T09:14:20.000Z",
+			"step": 5
+		},
+		{
+			"turn": 3,
+			"role": "bot",
+			"text": "Yes — the PDF contains the complete September invoice (no. 2026-09-4471). Use the Download button below. You can also subscribe to our monthly billing digest.",
+			"at": "2026-10-19T09:14:22.000Z",
+			"latency_ms": 2100,
+			"step": 5
+		}
+	],
+	"downloads": [
+		{
+			"path": "downloads/invoice-2026-09.pdf",
+			"filename": "invoice-2026-09.pdf",
+			"mime": "application/pdf",
+			"bytes": 18432,
+			"step": 6,
+			"turn": 3,
+			"text_excerpt": "INVOICE 2026-09-4471\nCustomer: 4471 (Marta's Bakery)\nPeriod: September 2026\nTotal due: 1,284.00 EUR\nDue date: 2026-10-15"
+		}
+	],
+	"console": [
+		{
+			"level": "error",
+			"text": "Failed to load resource: the server responded with a status of 404 (favicon.ico)",
+			"at": "2026-10-19T09:14:03.500Z",
+			"step": 1
+		},
+		{
+			"level": "info",
+			"text": "[demo-chatbot] websocket connected",
+			"at": "2026-10-19T09:14:03.700Z",
+			"step": 1
+		}
+	],
+	"resolved": {
+		"scenario": {
+			"name": "invoice-export-september",
+			"description": "Customer wants last month's invoice as a PDF.",
+			"persona": "impatient-smb-owner",
+			"target": "demo-chatbot",
+			"rubric": "customer-support",
+			"goal": "Obtain the September invoice as a downloadable PDF file.",
+			"intent": "The user wants exactly one thing: a PDF of the September invoice. They do not want a summary in chat, a link to a help article, or to be redirected to email support.",
+			"context": "The user is logged in already. Customer number 4471. It is the first week of October.",
+			"opening_message_example": "need my invoice for september as pdf",
+			"examples": ["customer 4471, septmber invoice please", "can i download it as a file?"],
+			"success_criteria": "A PDF file was downloaded during the conversation and the bot confirmed it is the September invoice. If the bot only describes the invoice or sends a link that does not download, the goal is NOT reached.",
+			"max_turns": 6,
+			"expected_artifacts": [
+				{ "type": "download", "mime": "application/pdf", "description": "The September invoice" }
+			],
+			"repeat": 1,
+			"vision": false,
+			"tags": ["billing", "downloads"]
+		},
+		"persona": {
+			"name": "impatient-smb-owner",
+			"description": "Owner of a small business who needs an invoice fast and has little patience for chatbots.",
+			"language": "en",
+			"traits": ["impatient", "non-technical", "direct"],
+			"interaction_style": ["short-messages", "occasional-typos", "asks-follow-up-when-unclear"],
+			"version": 1
+		},
+		"target": {
+			"name": "demo-chatbot",
+			"description": "Built-in demo chatbot shipped with agent-evaluator (npm run demo).",
+			"url": "http://localhost:3999",
+			"hints": [
+				"The chat widget is visible immediately; messages are sent with the \"Send\" button or Enter.",
+				"Download links appear inside bot messages as buttons labelled \"Download\"."
+			],
+			"timeouts": {
+				"response_ms": 60000,
+				"stable_ms": 1500,
+				"navigation_ms": 30000,
+				"capture_interval_ms": 2000
+			},
+			"viewport": { "width": 1280, "height": 800 },
+			"vision": false,
+			"headless": true
+		},
+		"rubric": {
+			"name": "customer-support",
+			"description": "Baseline expectations for a customer-facing support bot.",
+			"pass_threshold": 0.7,
+			"criteria": [
+				{
+					"id": "goal_reached",
+					"type": "llm",
+					"description": "The simulated user's goal, as defined in the scenario, was fully achieved within the turn budget. Judge strictly against the scenario's success criteria.",
+					"weight": 3,
+					"required": true,
+					"scale": "binary"
+				},
+				{
+					"id": "tone",
+					"type": "llm",
+					"description": "The bot stays polite, concise and professional even when the user is blunt. It never blames the user and never uses filler like \"Great question!\".",
+					"weight": 1,
+					"required": false,
+					"scale": "0-5",
+					"levels": {
+						"0": "Rude, dismissive or condescending.",
+						"3": "Polite but verbose or generic.",
+						"5": "Warm, concise, adapted to the user's tone."
+					}
+				},
+				{
+					"id": "no_hallucinated_data",
+					"type": "llm",
+					"description": "The bot does not invent order numbers, amounts, dates or policies. When it does not know, it says so or asks.",
+					"weight": 2,
+					"required": true,
+					"scale": "binary"
+				},
+				{
+					"id": "stays_on_task",
+					"type": "llm",
+					"description": "The bot does not push unrelated features or upsells while the user's request is open.",
+					"weight": 1,
+					"required": false,
+					"scale": "0-5"
+				},
+				{
+					"id": "pdf_delivered",
+					"type": "file",
+					"description": "A PDF file was downloaded.",
+					"mime": "application/pdf",
+					"min_bytes": 500,
+					"weight": 2,
+					"required": true
+				},
+				{
+					"id": "mentions_month",
+					"type": "regex",
+					"description": "The bot explicitly confirms the month.",
+					"pattern": "sept(ember)?",
+					"flags": "i",
+					"in": "bot",
+					"weight": 0.5,
+					"required": false
+				},
+				{
+					"id": "fast_enough",
+					"type": "max_response_time_ms",
+					"description": "Every reply arrives within 8 seconds.",
+					"value": 8000,
+					"aggregate": "max",
+					"weight": 0.5,
+					"required": false
+				},
+				{
+					"id": "clean_console",
+					"type": "no_console_errors",
+					"description": "The chat UI logs no JavaScript errors during the session.",
+					"ignore": ["favicon"],
+					"weight": 0.5,
+					"required": false
+				}
+			]
+		},
+		"evaluator": {
+			"principles": "You are evaluating a customer-facing chatbot. The bot should resolve the user's request itself whenever it has a tool for it. Redirecting to email or phone support counts as a failure unless the request is genuinely out of scope. Judge what actually happened in the browser, not what the bot claims.",
+			"max_images": 10,
+			"default_rubric": "customer-support",
+			"evidence_selection": "llm"
+		}
+	}
+}
