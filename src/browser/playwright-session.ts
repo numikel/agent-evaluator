@@ -246,9 +246,39 @@ export class PlaywrightSession implements BrowserSession {
 		options?: { submit?: boolean; clear?: boolean },
 	): Promise<void> {
 		const target = await this.locator(ref);
+		await this.waitUntilEditable(target, ref);
 		if (options?.clear) await target.fill(text);
 		else await target.pressSequentially(text);
 		if (options?.submit) await target.press("Enter");
+	}
+
+	/**
+	 * Keystrokes sent to a disabled or read-only field are silently dropped (Playwright's `press*`
+	 * methods perform no actionability checks), and chat UIs commonly disable the composer while a
+	 * reply streams. Wait, like a user would, until the field accepts input.
+	 */
+	private async waitUntilEditable(target: Locator, ref: string): Promise<void> {
+		const handle = await target.elementHandle({ timeout: this.options.navigationTimeoutMs });
+		if (!handle) return;
+		try {
+			await this.page.waitForFunction(
+				(el) => {
+					const field = el as HTMLInputElement;
+					return !field.disabled && !field.readOnly && el.getAttribute("aria-disabled") !== "true";
+				},
+				handle,
+				{ timeout: this.options.navigationTimeoutMs },
+			);
+		} catch (error) {
+			if (error instanceof Error && /Timeout/.test(error.message)) {
+				throw new Error(
+					`"${ref}" stayed disabled for ${this.options.navigationTimeoutMs} ms; the page may be stuck waiting for a reply`,
+				);
+			}
+			throw error;
+		} finally {
+			await handle.dispose();
+		}
 	}
 
 	async press(key: string): Promise<void> {

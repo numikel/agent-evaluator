@@ -102,7 +102,13 @@ function defaultOnShutdown(handler: () => Promise<void>): void {
 /** Real dependencies, with any subset replaced by `overrides`. */
 export function createCliDeps(overrides: Partial<CliDeps> = {}): CliDeps {
 	const env = overrides.env ?? process.env;
-	const secrets = overrides.secrets ?? new EnvSecretsProvider({ env });
+	// With the real environment, a plain `.env` in the working directory is loaded for local
+	// experiments (README "Secrets"); an injected `env` keeps tests hermetic.
+	const secrets =
+		overrides.secrets ??
+		new EnvSecretsProvider(
+			overrides.env ? { env } : { env, workspaceRoot: overrides.cwd ?? process.cwd() },
+		);
 	const providers = overrides.providers ?? createProviderRegistry();
 	const defaults: CliDeps = {
 		version: VERSION,

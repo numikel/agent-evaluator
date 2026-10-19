@@ -1,4 +1,0 @@
-### Added
-- `FsWorkspace` (`openWorkspace`): initialises the directory layout from the shipped templates, lists resources, loads and validates personas (Markdown + YAML frontmatter), scenarios, rubrics, targets, `evaluator.yaml` and `agent-evaluator.yaml`, offers raw read/validate/write/remove for editors, and resolves a scenario with its persona, target (overridable), rubric (scenario or `default_rubric`, built-in criteria applied), evaluator config and settings.
-- `FsRunStore` (`openRunStore`): persists `runs/<id>` evidence — atomic `run.json` writes, zero-padded `steps/NNN/` screenshots, snapshots and actions, JSONL transcript/console/events, `downloads/` with a `downloads.json` index, verdict and report files — and guards artifact paths against traversal.
-- `splitFrontmatter` / `joinFrontmatter` helpers for persona files.

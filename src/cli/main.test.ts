@@ -1,6 +1,28 @@
-import { describe, expect, it } from "vitest";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, describe, expect, it } from "vitest";
+import { createCliDeps } from "./deps.js";
 import { buildCli } from "./main.js";
 import { createCliHarness } from "./testing.js";
+
+describe("createCliDeps", () => {
+	const VAR = "AE_TEST_DOTENV_PROBE";
+	let dir: string | undefined;
+
+	afterEach(async () => {
+		delete process.env[VAR];
+		if (dir) await rm(dir, { recursive: true, force: true });
+	});
+
+	it("loads a plain .env from the working directory into the real secrets provider", async () => {
+		dir = await mkdtemp(join(tmpdir(), "ae-cli-dotenv-"));
+		await writeFile(join(dir, ".env"), `${VAR}=from-dotenv\n`);
+		const deps = createCliDeps({ cwd: dir });
+		expect(deps.secrets.has(VAR)).toBe(true);
+		expect(deps.secrets.get(VAR)).toBe("from-dotenv");
+	});
+});
 
 const COMMANDS = ["init", "serve", "run", "validate", "report", "templates", "doctor"];
 

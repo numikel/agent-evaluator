@@ -95,10 +95,14 @@
 		scrollToBottom();
 	}
 
+	// The composer is disabled while a reply streams (visible as `[disabled]` in the accessibility
+	// tree) instead of silently dropping a message submitted too early, e.g. during the greeting.
 	function setBusy(flag) {
 		busy = flag;
 		sendButton.disabled = flag;
+		input.disabled = flag;
 		status.textContent = flag ? "Assistant is typing…" : "";
+		if (!flag) input.focus();
 	}
 
 	function parseSseBlock(block) {

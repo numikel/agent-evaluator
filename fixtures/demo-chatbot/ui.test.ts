@@ -130,6 +130,16 @@ describe("demo chatbot UI", () => {
 		expect(lastBot()?.querySelector("button")).toBeNull();
 	});
 
+	it("disables the message input while a reply streams so typed text is never dropped", async () => {
+		await boot();
+		await idle();
+		send("hello");
+		expect($<HTMLTextAreaElement>("#input").disabled).toBe(true);
+		await idle();
+		expect($<HTMLTextAreaElement>("#input").disabled).toBe(false);
+		expect(document.activeElement).toBe($("#input"));
+	});
+
 	it("broken mode logs a console error and leaves the reply unfinished", async () => {
 		const errors = vi.spyOn(console, "error").mockImplementation(() => {});
 		await boot("broken");

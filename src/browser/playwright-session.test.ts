@@ -38,6 +38,9 @@ function stream(){let n=0;const t=setInterval(()=>{document.getElementById('repl
 <script>
 function ask(){document.getElementById('log').textContent='sent';setTimeout(()=>fetch('/slow').then(r=>r.text()).then(t=>{document.getElementById('log').textContent+=t}),100)}
 </script>`,
+	"/busy": `<!doctype html><title>Busy</title>
+<input aria-label="Message" disabled onkeydown="if(event.key==='Enter')document.title='enter:'+this.value">
+<script>setTimeout(()=>{document.querySelector('input').disabled=false},400)</script>`,
 	"/static": "<!doctype html><title>Static</title><p>Nothing ever changes here.</p>",
 	"/errors": `<!doctype html><title>Errors</title>
 <script>
@@ -146,6 +149,14 @@ describe("PlaywrightSession", () => {
 		expect((await session.snapshot()).title).toBe("enter:hello there");
 		await session.type(input, "fresh", { clear: true, submit: true });
 		expect((await session.snapshot()).title).toBe("enter:fresh");
+	});
+
+	it("waits for a disabled textbox to become editable before typing", async () => {
+		const session = await openPage("/busy");
+		const { tree } = await session.snapshot();
+		expect(tree).toContain('textbox "Message" [disabled]');
+		await session.type(refOf(tree, 'textbox "Message"'), "hello", { submit: true });
+		expect((await session.snapshot()).title).toBe("enter:hello");
 	});
 
 	it("captures viewport screenshots as PNG", async () => {

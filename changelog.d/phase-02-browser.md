@@ -1,4 +1,0 @@
-### Added
-- `PlaywrightSession` / `PlaywrightSessionFactory` (`src/browser`): Chromium-backed `BrowserSession` that perceives pages through `ariaSnapshot({ mode: "ai" })` refs, acts via `getByRef`, captures viewport screenshots (plus an annotated variant with numbered ref labels for vision mode), saves downloads with sniffed mime types, uploads through the file chooser, drains console messages and network failures, lists newly rendered images and detects when a streamed reply has stabilised (`waitForReplyStable` with interim screenshots and in-flight request tracking).
-- `BrowserSessionOptions.executablePath` (additive) and the `AE_CHROMIUM_PATH` environment variable to point at a Chromium binary when Playwright's bundled build is not installed.
-- `src/browser/test-server.ts`: ephemeral `node:http` fixture server for browser tests.
