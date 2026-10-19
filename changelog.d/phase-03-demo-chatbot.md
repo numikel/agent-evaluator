@@ -1,0 +1,5 @@
+### Added
+- Demo chatbot fixture (`fixtures/demo-chatbot`, `npm run demo`, port 3999 / `DEMO_PORT`): a dependency-free Hono app with a vanilla-JS, accessible chat page (`role="log"` message list, `aria-label="Message"` textarea, "Send" button, Enter submits, `aria-label="Attach file"` upload input, "Download" buttons on bot messages with attachments).
+- Scripted, deterministic `reply(history, mode)` brain: greeting, customer-number and month collection, invoice delivery as `/api/invoice/<month>.pdf`, polite fallback; failure modes via `?mode=normal|slow|offtopic|broken|noattach`.
+- Routes: `GET /` (chat page), `POST /api/chat` (SSE token stream: `token` / `done` / `error` events), `GET /api/invoice/:month.pdf` (hand-rolled minimal PDF, ≥ 500 bytes, titled "Invoice <Month> 2026"), `POST /api/upload` (multipart, echoes the file name), `GET /api/reset`, `GET /api/state`.
+- `createDemoApp()` / `startDemo(port)` exports so tests and the E2E suite can run the fixture in-process; unit tests for the brain, the PDF writer and the server (`app.request()`).

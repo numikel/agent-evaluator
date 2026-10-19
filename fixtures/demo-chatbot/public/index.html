@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Acme Support Chat</title>
+		<link rel="stylesheet" href="/style.css" />
+	</head>
+	<body>
+		<main class="chat" aria-labelledby="chat-title">
+			<header class="chat-header">
+				<h1 id="chat-title">Acme Support</h1>
+				<p class="chat-subtitle">
+					Demo chatbot <span id="mode-badge" class="mode-badge" hidden></span>
+				</p>
+			</header>
+
+			<div id="messages" class="messages" role="log" aria-label="Conversation" data-testid="messages"></div>
+
+			<p id="status" class="status" role="status" aria-live="polite"></p>
+
+			<form id="composer" class="composer" autocomplete="off">
+				<label class="attach">
+					<span class="attach-icon" aria-hidden="true">+</span>
+					<input type="file" id="attach" aria-label="Attach file" data-testid="attach" />
+				</label>
+				<textarea
+					id="input"
+					name="message"
+					aria-label="Message"
+					data-testid="input"
+					placeholder="Type a message and press Enter"
+					rows="2"
+					required
+				></textarea>
+				<button type="submit" id="send" data-testid="send">Send</button>
+			</form>
+		</main>
+		<script src="/app.js"></script>
+	</body>
+</html>
