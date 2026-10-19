@@ -26,9 +26,9 @@ jobs:
       - run: npm audit --audit-level=high
       - run: npm run lint
       - run: npm run typecheck
+      - run: npm run build
       - run: npx playwright install --with-deps chromium
       - run: npm test
-      - run: npm run build
       - name: Upload coverage summary
         if: matrix.node == 24
         run: npm run test:coverage -- --coverage.reporter=text-summary

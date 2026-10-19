@@ -12,7 +12,7 @@ working in parallel. Each phase has a self-contained brief in `docs/plans/phase-
 
 ## Development commands
 
-- `npm run verify` — lint + typecheck + unit/ui tests + build (the definition of done)
+- `npm run verify` — lint + typecheck + build + unit/ui tests (build first: the CLI smoke test runs `dist/cli.js`)
 - `npm run lint` / `npm run fix` — Biome
 - `npm run typecheck` — `tsc` for `src/` and `ui/`
 - `npm test` / `npm run test:watch` / `npm run test:coverage` — Vitest projects `unit` + `ui`
