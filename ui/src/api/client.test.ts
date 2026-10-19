@@ -42,13 +42,21 @@ describe("api client", () => {
 		);
 	});
 
-	it("PUT with a valid body resolves with the stored document", async () => {
+	it("PUT with a valid body resolves (204, no content)", async () => {
 		const scenario = await api.get<Scenario>("/api/scenarios/invoice-export-september");
-		const saved = await api.put<Scenario>("/api/scenarios/invoice-export-september", {
-			...scenario,
-			max_turns: 9,
-		});
-		expect(saved.max_turns).toBe(9);
+		await expect(
+			api.put("/api/scenarios/invoice-export-september", { ...scenario, max_turns: 9 }),
+		).resolves.toBeUndefined();
+	});
+
+	it("putText sends raw text with a text content type and surfaces 422 issues", async () => {
+		await expect(
+			api.putText("/api/scenarios/invoice-export-september", "name: invoice-export-september\n"),
+		).rejects.toBeInstanceOf(ApiValidationError);
+		const template = await api.get<string>("/api/templates/scenario");
+		await expect(
+			api.putText("/api/scenarios/invoice-export-september", template),
+		).resolves.toBeUndefined();
 	});
 
 	it("maps non-validation failures to ApiError with status and message", async () => {

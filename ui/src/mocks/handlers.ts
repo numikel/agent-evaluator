@@ -22,7 +22,6 @@ import {
 	ValidateRequestSchema,
 } from "@schemas/api";
 import { parseWith } from "@schemas/common";
-import { PersonaFrontmatterSchema } from "@schemas/persona";
 import { HttpResponse, type HttpResponseInit, http, type JsonBodyType } from "msw";
 import { parse as parseYaml } from "yaml";
 import type { z } from "zod";
@@ -54,29 +53,67 @@ async function readJson(request: Request): Promise<unknown> {
 	}
 }
 
-/** Validates `request`'s JSON body with `schema`; responds 422 on failure, echoes the parsed value otherwise. */
+const isJson = (request: Request): boolean =>
+	(request.headers.get("content-type") ?? "").toLowerCase().includes("json");
+
+/**
+ * Validates a PUT body like the server: a JSON document is checked with `schema`; raw text
+ * (Markdown for personas, YAML otherwise) is parsed and validated as a file. 422 on failure.
+ */
 async function validatedPut(
 	request: Request,
+	kind: ResourceKind,
 	schema: z.ZodType,
 	source: string,
+	respond: (data: JsonBodyType) => Response = (data) => json(data),
 ): Promise<Response> {
+	if (!isJson(request)) {
+		const result = validateContent(kind, await request.text());
+		if (!result.ok) return validationError(result.issues, source);
+		return respond(kindDefaults(kind));
+	}
 	const body = await readJson(request);
 	const result = parseWith(schema, body, source);
 	if (!result.ok) return validationError(result.error.issues, source);
-	return json(result.data as JsonBodyType);
+	return respond(result.data as JsonBodyType);
 }
 
 type Collection = "personas" | "scenarios" | "rubrics" | "targets";
 
-const documents: Record<Collection, { name: string; doc: JsonBodyType; schema: z.ZodType }> = {
-	personas: { name: fx.persona.frontmatter.name, doc: fx.persona, schema: PersonaDocumentSchema },
-	scenarios: { name: fx.scenario.name, doc: fx.scenario, schema: ScenarioSchema },
-	rubrics: { name: fx.rubric.name, doc: fx.rubric, schema: RubricSchema },
-	targets: { name: fx.target.name, doc: fx.target, schema: TargetSchema },
+const documents: Record<
+	Collection,
+	{ kind: ResourceKind; name: string; doc: JsonBodyType; schema: z.ZodType }
+> = {
+	personas: {
+		kind: "persona",
+		name: fx.persona.frontmatter.name,
+		doc: fx.persona,
+		schema: PersonaDocumentSchema,
+	},
+	scenarios: { kind: "scenario", name: fx.scenario.name, doc: fx.scenario, schema: ScenarioSchema },
+	rubrics: { kind: "rubric", name: fx.rubric.name, doc: fx.rubric, schema: RubricSchema },
+	targets: { kind: "target", name: fx.target.name, doc: fx.target, schema: TargetSchema },
 };
 
+function kindDefaults(kind: ResourceKind): JsonBodyType {
+	switch (kind) {
+		case "persona":
+			return fx.persona;
+		case "scenario":
+			return fx.scenario;
+		case "rubric":
+			return fx.rubric;
+		case "target":
+			return fx.target;
+		case "evaluator":
+			return fx.evaluator;
+		case "settings":
+			return fx.settings;
+	}
+}
+
 function resourceHandlers(collection: Collection) {
-	const { name, doc, schema } = documents[collection];
+	const { kind, name, doc, schema } = documents[collection];
 	const singular = collection.slice(0, -1);
 	return [
 		http.get(`${API}/${collection}`, () => json(fx.summaries[collection])),
@@ -84,14 +121,20 @@ function resourceHandlers(collection: Collection) {
 			params.name === name ? json(doc) : notFound(`${singular} "${String(params.name)}" not found`),
 		),
 		http.put(`${API}/${collection}/:name`, ({ request, params }) =>
-			validatedPut(request, schema, `${collection}/${String(params.name)}`),
+			validatedPut(
+				request,
+				kind,
+				schema,
+				`${collection}/${String(params.name)}`,
+				() => new HttpResponse(null, { status: 204 }),
+			),
 		),
 		http.delete(`${API}/${collection}/:name`, () => new HttpResponse(null, { status: 204 })),
 	];
 }
 
 const kindSchemas: Record<ResourceKind, z.ZodType> = {
-	persona: PersonaFrontmatterSchema,
+	persona: PersonaDocumentSchema,
 	scenario: ScenarioSchema,
 	rubric: RubricSchema,
 	target: TargetSchema,
@@ -99,10 +142,20 @@ const kindSchemas: Record<ResourceKind, z.ZodType> = {
 	settings: SettingsSchema,
 };
 
+/** Mirrors the server's `validateRaw`: persona issues are reported under `frontmatter.*`. */
 function validateContent(kind: ResourceKind, content: string): ValidateResponse {
 	let parsed: unknown;
 	try {
-		parsed = kind === "persona" ? fx.splitFrontmatter(content).frontmatter : parseYaml(content);
+		if (kind === "persona") {
+			const split = fx.splitFrontmatter(content);
+			if (split.frontmatter === undefined) {
+				const message = "Missing YAML frontmatter: the file must start with a '---' block";
+				return { ok: false, issues: [{ path: "", message }] };
+			}
+			parsed = { frontmatter: split.frontmatter, body: split.body };
+		} else {
+			parsed = parseYaml(content);
+		}
 	} catch (error) {
 		return { ok: false, issues: [{ path: "", message: (error as Error).message }] };
 	}
@@ -143,17 +196,17 @@ export const handlers = [
 
 	http.get(`${API}/evaluator`, () => json(fx.evaluator)),
 	http.put(`${API}/evaluator`, ({ request }) =>
-		validatedPut(request, EvaluatorConfigSchema, "evaluator.yaml"),
+		validatedPut(request, "evaluator", EvaluatorConfigSchema, "evaluator.yaml"),
 	),
 
 	http.get(`${API}/settings`, () => json(settingsResponse(fx.settings))),
-	http.put(`${API}/settings`, async ({ request }) => {
-		const result = parseWith(SettingsSchema, await readJson(request), "agent-evaluator.yaml");
-		if (!result.ok) return validationError(result.error.issues, "agent-evaluator.yaml");
-		return json(settingsResponse(result.data));
-	}),
+	http.put(`${API}/settings`, ({ request }) =>
+		validatedPut(request, "settings", SettingsSchema, "agent-evaluator.yaml", (data) =>
+			json(settingsResponse(data as typeof fx.settings)),
+		),
+	),
 
-	http.get(`${API}/providers`, () => json(fx.providers)),
+	http.get(`${API}/providers`, () => json(fx.providers.filter((p) => p.configured))),
 	http.get(`${API}/providers/:id/models`, ({ params }) => {
 		const id = String(params.id);
 		return fx.providers.some((p) => p.id === id)

@@ -114,6 +114,11 @@ function splitRef(ref: string): { provider: string; model: string } {
 
 const configuredProvider = splitRef(settings.models.simulator).provider;
 
+/**
+ * Presence list as `GET /api/settings` reports it: two configured providers (one with a live
+ * model list, one that only has a fallback list) and one that is not configured.
+ * `GET /api/providers` serves only the configured ones.
+ */
 export const providers: ProviderStatus[] = [
 	{
 		id: configuredProvider,
@@ -121,7 +126,8 @@ export const providers: ProviderStatus[] = [
 		env: `${configuredProvider.toUpperCase().replace(/-/g, "_")}_API_KEY`,
 		configured: true,
 	},
-	{ id: "ollama", label: "ollama", env: "OLLAMA_HOST", configured: true },
+	{ id: "ollama", label: "Ollama (local)", env: "OLLAMA_BASE_URL", configured: true },
+	{ id: "openai", label: "OpenAI", env: "OPENAI_API_KEY", configured: false },
 ];
 
 export function providerModels(providerId: string): ProviderModelsResponse {
@@ -130,22 +136,29 @@ export function providerModels(providerId: string): ProviderModelsResponse {
 		.filter((r) => r.provider === providerId)
 		.map((r) => r.model);
 	const ids = [...new Set([...fromSettings, "mock-small", "mock-large"])];
-	return {
+	const fallback = providerId === "ollama";
+	const response: ProviderModelsResponse = {
 		provider: providerId,
-		models: ids.map((id) => ({
-			provider: providerId,
-			id,
-			label: id,
-			ref: `${providerId}:${id}`,
-			context_window: 200_000,
-			max_output_tokens: 16_384,
-			supports_reasoning: true,
-			supports_images: true,
-			supports_tools: true,
-		})),
+		models: ids.map((id) =>
+			fallback
+				? { provider: providerId, id, label: id, ref: `${providerId}:${id}` }
+				: {
+						provider: providerId,
+						id,
+						label: id,
+						ref: `${providerId}:${id}`,
+						context_window: id === "mock-small" ? 32_000 : 200_000,
+						max_output_tokens: 16_384,
+						supports_reasoning: id !== "mock-small",
+						supports_images: true,
+						supports_tools: true,
+					},
+		),
 		fetched_at: UPDATED_AT,
-		source: providerId === "ollama" ? "fallback" : "api",
+		source: fallback ? "fallback" : "api",
 	};
+	if (fallback) response.error = "provider has no model-listing endpoint";
+	return response;
 }
 
 /* ---------- runs ---------- */

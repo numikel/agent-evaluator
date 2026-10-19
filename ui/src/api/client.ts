@@ -98,11 +98,14 @@ async function readBody(response: Response): Promise<unknown> {
 	}
 }
 
-async function request<T>(method: Method, path: string, body?: unknown): Promise<T> {
+type Body = { json: unknown } | { text: string; contentType: string };
+
+async function request<T>(method: Method, path: string, body?: Body): Promise<T> {
 	const init: RequestInit = { method, headers: { Accept: "application/json" } };
 	if (body !== undefined) {
-		init.headers = { ...init.headers, "Content-Type": "application/json" };
-		init.body = JSON.stringify(body);
+		const contentType = "json" in body ? "application/json" : body.contentType;
+		init.headers = { ...init.headers, "Content-Type": contentType };
+		init.body = "json" in body ? JSON.stringify(body.json) : body.text;
 	}
 	const response = await fetch(resolveUrl(path), init);
 	const payload = await readBody(response);
@@ -120,10 +123,16 @@ async function request<T>(method: Method, path: string, body?: unknown): Promise
 	throw new ApiError(response.status, "http_error", message, payload);
 }
 
+export const TEXT_PLAIN = "text/plain; charset=utf-8";
+
 export const api = {
 	get: <T>(path: string) => request<T>("GET", path),
-	put: <T>(path: string, body: unknown) => request<T>("PUT", path, body),
-	post: <T>(path: string, body?: unknown) => request<T>("POST", path, body),
+	put: <T>(path: string, body: unknown) => request<T>("PUT", path, { json: body }),
+	/** PUT raw file text; the server validates it and keeps comments intact. */
+	putText: <T>(path: string, text: string, contentType: string = TEXT_PLAIN) =>
+		request<T>("PUT", path, { text, contentType }),
+	post: <T>(path: string, body?: unknown) =>
+		request<T>("POST", path, body === undefined ? undefined : { json: body }),
 	del: (path: string) => request<undefined>("DELETE", path),
 };
 
@@ -146,18 +155,26 @@ export const endpoints = {
 		api.get<ResourceDocument[C]>(`/api/${collection}/${seg(name)}`),
 	saveResource: <C extends Collection>(collection: C, name: string, doc: ResourceDocument[C]) =>
 		api.put<ResourceDocument[C]>(`/api/${collection}/${seg(name)}`, doc),
+	/** Saves the raw file (Markdown for personas, YAML otherwise); 204 on success, 422 on issues. */
+	saveResourceText: (collection: Collection, name: string, text: string) =>
+		api.putText<undefined>(`/api/${collection}/${seg(name)}`, text),
 	deleteResource: (collection: Collection, name: string) =>
 		api.del(`/api/${collection}/${seg(name)}`),
 	validate: (kind: ResourceKind, content: string) =>
 		api.post<ValidateResponse>("/api/validate", { kind, content }),
 	templateUrl: (kind: ResourceKind) => `/api/templates/${kind}`,
+	/** Template file text (the same bytes the download link serves). */
+	template: (kind: ResourceKind) => api.get<string>(`/api/templates/${kind}`),
 	evaluator: () => api.get<EvaluatorConfig>("/api/evaluator"),
 	saveEvaluator: (config: EvaluatorConfig) => api.put<EvaluatorConfig>("/api/evaluator", config),
+	saveEvaluatorText: (text: string) => api.putText<EvaluatorConfig>("/api/evaluator", text),
 	settings: () => api.get<SettingsResponse>("/api/settings"),
 	saveSettings: (settings: Settings) => api.put<SettingsResponse>("/api/settings", settings),
 	providers: () => api.get<ProviderStatus[]>("/api/providers"),
-	providerModels: (id: string) =>
-		api.get<ProviderModelsResponse>(`/api/providers/${seg(id)}/models`),
+	providerModels: (id: string, options?: { refresh?: boolean }) =>
+		api.get<ProviderModelsResponse>(
+			`/api/providers/${seg(id)}/models${options?.refresh ? "?refresh=1" : ""}`,
+		),
 	runs: () => api.get<RunSummary[]>("/api/runs"),
 	startRun: (body: StartRunRequest) => api.post<StartRunResponse>("/api/runs", body),
 	run: (id: string) => api.get<RunDetail>(`/api/runs/${seg(id)}`),

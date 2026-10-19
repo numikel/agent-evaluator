@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { describe, expect, it } from "vitest";
 import { routes } from "./routes.js";
@@ -65,6 +65,7 @@ describe("routes", () => {
 
 	it("dashboard shows workspace counts from the API", async () => {
 		renderAt("/");
-		expect(await screen.findByTestId("workspace-count-scenarios")).toHaveTextContent("1");
+		const count = await screen.findByTestId("workspace-count-scenarios");
+		await waitFor(() => expect(count).toHaveTextContent("1"));
 	});
 });
