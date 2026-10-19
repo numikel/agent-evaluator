@@ -62,22 +62,37 @@ P0 ─► Wave 1 [PARALLEL]: P1 P2 P3 P4 P5 P6 P7 P8 P9
 
 | Phase | Brief | Commit | Subagent profile |
 | --- | --- | --- | --- |
-| P0 | `phase-00-scaffold.md` | `chore: scaffold project, contracts, test doubles and phase plans` | done |
-| P1 | `phase-01-workspace.md` | `feat(workspace): …` | backend |
-| P2 | `phase-02-browser.md` | `feat(browser): …` | browser automation |
-| P3 | `phase-03-demo-chatbot.md` | `feat(fixtures): …` | frontend |
-| P4 | `phase-04-config.md` | `feat(config): …` | backend |
-| P5 | `phase-05-report.md` | `feat(report): …` | report/frontend |
-| P6 | `phase-06-simulator.md` | `feat(simulator): …` | agents |
-| P7 | `phase-07-judge.md` | `feat(judge): …` | agents |
-| P8 | `phase-08-server.md` | `feat(server): …` | backend |
-| P9 | `phase-09-ui-scaffold.md` | `feat(ui): …` | frontend |
+| P0 | `phase-00-scaffold.md` | `chore: scaffold project, contracts, test doubles and phase plans` | done (`c4ceeca`) |
+| P1 | `phase-01-workspace.md` | `feat(workspace): …` | done (`0df3aef`) |
+| P2 | `phase-02-browser.md` | `feat(browser): …` | done (`c970625`) |
+| P3 | `phase-03-demo-chatbot.md` | `feat(fixtures): …` | done (`7b66a82`) |
+| P4 | `phase-04-config.md` | `feat(config): …` | done (`f953b59`) |
+| P5 | `phase-05-report.md` | `feat(report): …` | done (`140260a`) |
+| P6 | `phase-06-simulator.md` | `feat(simulator): …` | done (`754d297`) |
+| P7 | `phase-07-judge.md` | `feat(judge): …` | done (`a426469`) |
+| P8 | `phase-08-server.md` | `feat(server): …` | done (`faed774`) |
+| P9 | `phase-09-ui-scaffold.md` | `feat(ui): …` | done (`c501441`) |
 | P10 | `phase-10-runner.md` | `feat(runner): …` | backend/agents |
 | P11 | `phase-11-cli.md` | `feat(cli): …` | backend |
 | P12a | `phase-12a-ui-editors.md` | `feat(ui): …` | frontend |
 | P12b | `phase-12b-ui-runs.md` | `feat(ui): …` | frontend |
 | P13 | `phase-13-e2e.md` | `test(e2e): …` | testing |
 | P14 | `phase-14-release.md` | `docs: …` + `chore(release): 0.1.0` | docs |
+
+## Wave 1 hand-off notes (2026-10-19, read before P10/P11/P12)
+
+Verified on the integration branch after merging P1–P9: `npm run verify` green with 430 tests; real-Chromium smoke of P2+P3 (snapshot refs → type+submit → `waitForReplyStable` with interim shots → PDF download 1111 B); built UI renders at 360/1280 px without overflow; the PASSED report fixture renders in Chromium without errors. Chromium in this sandbox: Playwright's default build is absent, use `AE_CHROMIUM_PATH=/opt/pw-browsers/chromium` (P2 resolves it automatically).
+
+- **Contract additions (all additive):** `BrowserSessionOptions.executablePath?` (P2); `ProviderDefinition.effortKnob` gained `"openrouter"`, `ProviderNotConfiguredError` exported from `src/config/types.ts` (P4).
+- **P1 → runner:** `RunStore.root` is the runs directory itself (`join(workspace.root, settings.runs_dir)`); `loadSettings` returns defaults when the file is absent; names passed to loaders must be slugs; `saveDownload` stats the real size and suffixes duplicate names.
+- **P2 → simulator/runner:** `waitForReplyStable` reports stable when the aria tree is unchanged for `stableMs` **and** no request younger than `stableMs` is in flight; a backend slower than `stableMs` to first token with no typing indicator may be reported stable before the reply lands — the simulator should verify the tree gained a bot message (`firstChangeMs === undefined` hints nothing happened). `factory.close()` must be called at shutdown. `PlaywrightSession.screenshotAnnotated()` exists for vision mode. Refs must come from the latest snapshot.
+- **P3 → simulator:** demo UI a11y shape: `log "Conversation"` with `article` per message, `textbox "Message"` (`[active]` attribute may appear before `[ref=…]` — regexes must tolerate attributes), `button "Send"`, `button "Download"` inside the bot article, `button "Attach file"`, `status` live region "Assistant is typing…". `startDemo(port)` returns `{ url, port, app, close() }`.
+- **P4 → runner/server/CLI:** `createProviderRegistry()`, `LangChainModelFactory` (injectable `initChatModel`), `resolveSettings({ file, env, cli })`, `runDoctor(...)`. OpenAI effort is passed as `reasoning: { effort }`; xAI effort is a no-op for `grok-*`; Anthropic rejects `temperature != 1` with extended thinking (not enforced).
+- **P5 → runner:** `renderReport(input, options?)` returns exactly the `RunStore.saveReport` map; `resolved.rubric` must already have built-in criteria (P1 `resolve` does that); `inlineImages` uses an injected loader.
+- **P6 → runner:** `runSimulator({ resolved, session, model, recorder, onMessage?, onDownload?, signal? })` does **not** call `session.open()` (runner does setup/login); `max_turns` enforced by middleware; `StepRecorder` interface in `src/agents/simulator/recorder.ts` — P10 implements a `RunStore`-backed one, moves downloads via `onDownload(result, stepId)`, derives `turn` events from user transcript entries, and maps reason `blocked` to a status (suggested: FAILED with `simulator_outcome.reason = "blocked"`).
+- **P7 → runner:** `judgeRun(input, deps)`; judge-model errors propagate (map to ERROR); `extractDownloads` returns `text_excerpt` on `ExtractedFile`s only — persist into `downloads.json` so the report shows excerpts; `onCriterion` fires deterministic first.
+- **P8 → runner/CLI/UI:** `createApp(deps: ServerDeps)` (`workspace, runStore, runner, providers, secrets, settingsLoader?, browserInstalled?, uiDir?, version?, heartbeatMs?`); pass `VERSION` from P11. The runner must `appendEvent` to `events.jsonl` **before** emitting so SSE late joiners get history; `POST /api/runs` returns 202; 404 mapping relies on `"not found"` in error messages (P1 errors comply). UI should read SSE as unnamed `data:` events with sequential ids.
+- **P9 → P12:** route map and component API in `ui/src/app/routes.tsx`, `ui/src/api/client.ts` (`endpoints.*`), `ui/src/api/sse.ts`; msw handlers in `ui/src/mocks/`.
 
 ## Parallel-work rules (binding)
 
