@@ -1,16 +1,25 @@
 name: Release
 
-# Publishes the package to npm when a version tag is pushed (`git tag v0.1.0 && git push --tags`).
-# Requires the `NPM_TOKEN` repository secret (an npm automation token); it must be added manually
-# under Settings → Secrets and variables → Actions. Without it `npm publish` fails and nothing is
-# published. `--provenance` needs the `id-token: write` permission below.
+# Publishes the package to npm. Two ways to start it:
+#   1. Push a version tag: `git tag v0.1.0 && git push origin v0.1.0`.
+#   2. Actions → Release → "Run workflow" on `main` with the version (e.g. 0.1.0); the job creates
+#      the `vX.Y.Z` tag itself. Works from the GitHub mobile app.
+# Either way the version must equal `package.json`. Requires the `NPM_TOKEN` repository secret (an
+# npm granular token with publish rights and 2FA bypass), added under Settings → Secrets and
+# variables → Actions. `--provenance` needs `id-token: write`; creating the tag needs `contents: write`.
 
 on:
   push:
     tags: ["v*.*.*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release; must equal package.json (e.g. 0.1.0)"
+        required: true
+        type: string
 
 permissions:
-  contents: read
+  contents: write
   id-token: write
 
 jobs:
@@ -26,12 +35,30 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
-      - name: Check that the tag matches package.json
+      - name: Check that the requested version matches package.json
+        id: version
+        env:
+          REQUESTED: ${{ github.event_name == 'workflow_dispatch' && inputs.version || github.ref_name }}
         run: |
           version="$(node -p "require('./package.json').version")"
-          if [ "v${version}" != "${GITHUB_REF_NAME}" ]; then
-            echo "tag ${GITHUB_REF_NAME} does not match package.json version ${version}" >&2
+          requested="${REQUESTED#v}"
+          if [ "${version}" != "${requested}" ]; then
+            echo "requested ${requested} does not match package.json version ${version}" >&2
             exit 1
+          fi
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+      - name: Create the version tag (manual runs only)
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          if git ls-remote --exit-code --tags origin "refs/tags/v${VERSION}" >/dev/null 2>&1; then
+            echo "tag v${VERSION} already exists; publishing from it"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git tag -a "v${VERSION}" -m "agent-evaluator ${VERSION}"
+            git push origin "v${VERSION}"
           fi
       - run: npm publish --provenance --access public
         env:
