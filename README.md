@@ -114,27 +114,46 @@ The run streams its progress to stderr, prints a summary table to stdout and lea
 
 ## How it works
 
-```
-   workspace (personas/, scenarios/, rubrics/, targets/, evaluator.yaml, agent-evaluator.yaml)
-                                            │
-                                            ▼
-      CLI  ───────►  Runner (one LangGraph graph per run)  ◄───────  Web UI ⇄ Hono API (SSE)
-                                            │
-            ┌───────────────────────────────┼─────────────────────────────┐
-            ▼                               ▼                             ▼
-     Simulator agent               RunStore  runs/<id>/              Judge agent
-  (LangChain createAgent)        screenshots, snapshots,        deterministic criteria
-   persona + scenario            transcript, downloads,        + LLM criteria with evidence
-            │                    console, events                          │
-            ▼                                                             ▼
-     BrowserSession                                              Verdict → report.html
-  (Playwright, a11y refs)                                         summary.json, junit.xml
-            │
-            ▼
-   the chatbot under test
+```mermaid
+flowchart TD
+    WS["Workspace files<br/>personas/ · scenarios/ · rubrics/ · targets/<br/>evaluator.yaml · agent-evaluator.yaml"]
+    CLI["CLI<br/>agent-evaluator run / serve"]
+    UI["Web UI"]
+    API["Hono API<br/>REST + SSE"]
+    RUNNER["Runner<br/>one LangGraph graph per run"]
+    SIM["Simulator agent<br/>LangChain createAgent, persona + scenario"]
+    BROWSER["BrowserSession<br/>Playwright, accessibility refs"]
+    BOT["Chatbot under test"]
+    STORE["RunStore runs/{id}/<br/>screenshots · snapshots · transcript<br/>downloads · console · events"]
+    JUDGE["Judge agent<br/>deterministic + LLM criteria with evidence"]
+    VERDICT["Verdict"]
+    REPORT["report.html · summary.json · junit.xml"]
+
+    WS --> RUNNER
+    CLI --> RUNNER
+    UI <--> API
+    API --> RUNNER
+    API -. live events .-> UI
+    RUNNER --> SIM
+    SIM --> BROWSER
+    BROWSER --> BOT
+    SIM --> STORE
+    RUNNER --> JUDGE
+    STORE --> JUDGE
+    JUDGE --> VERDICT
+    VERDICT --> REPORT
 ```
 
-Every run goes through five steps (`setup → converse → collect → judge → report`):
+Every run goes through five steps:
+
+```mermaid
+flowchart LR
+    S[setup] --> C[converse]
+    C -- "next turn" --> C
+    C -- "end_conversation<br/>or max_turns" --> L[collect]
+    L --> J[judge]
+    J --> R[report]
+```
 
 1. **setup** — resolve the scenario with its persona, target, rubric (built-in criteria applied),
    evaluator config and settings; write `scenario.snapshot.yaml`; open the target URL in a fresh

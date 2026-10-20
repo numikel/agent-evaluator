@@ -4,20 +4,38 @@ Status: reflects the 0.1.0 code base (final pass in Phase 14).
 
 ## Overview
 
-```
-                 workspace files (personas/, scenarios/, rubrics/, targets/, evaluator.yaml, agent-evaluator.yaml)
-                                              │
-                                              ▼
- CLI / UI ──► Hono server ──► Runner (LangGraph graph per run)
-                                   │
-                 ┌─────────────────┼──────────────────────┐
-                 ▼                 ▼                      ▼
-        Simulator agent     RunStore (runs/<id>/…)    Judge agent
-   (createAgent + tools)    screenshots, snapshots,  (deterministic + LLM
-            │               transcript, downloads     criteria, evidence)
-            ▼                                              │
-     BrowserSession                                        ▼
-   (Playwright, a11y refs)                           Verdict → Report (HTML/JSON/JUnit)
+```mermaid
+flowchart TD
+    subgraph entry["Entry points"]
+        CLI["CLI (src/cli)"]
+        UI["Web UI (ui/)"]
+        API["Hono API + SSE (src/server)"]
+    end
+    subgraph core["Core"]
+        WS["Workspace files (src/workspace)<br/>personas · scenarios · rubrics · targets · evaluator · settings"]
+        RUNNER["Runner (src/runner)<br/>one LangGraph graph per run"]
+        STORE["RunStore runs/{id}/ (src/workspace)<br/>screenshots · snapshots · transcript · downloads · console · events"]
+    end
+    subgraph agents["Agents"]
+        SIM["Simulator agent (src/agents/simulator)<br/>createAgent + browser tools"]
+        BROWSER["BrowserSession (src/browser)<br/>Playwright, accessibility refs"]
+        JUDGE["Judge agent (src/agents/judge)<br/>deterministic + LLM criteria, evidence"]
+    end
+    REPORT["Report renderer (src/report)<br/>report.html · summary.json · junit.xml"]
+    BOT["Chatbot under test"]
+
+    UI <--> API
+    CLI --> RUNNER
+    API --> RUNNER
+    WS --> RUNNER
+    RUNNER --> SIM
+    SIM --> BROWSER
+    BROWSER --> BOT
+    SIM --> STORE
+    RUNNER --> JUDGE
+    STORE --> JUDGE
+    JUDGE --> REPORT
+    REPORT --> STORE
 ```
 
 The CLI (`run`) and the server (`serve`) build the same object graph: `openWorkspace` +

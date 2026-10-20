@@ -50,14 +50,38 @@ typescript 7.0.2 · msw 3 · @testing-library/react 16. Verified model ids: `cla
 
 ## Phases and dependency graph
 
-```
-P0 ─► Wave 1 [PARALLEL]: P1 P2 P3 P4 P5 P6 P7 P8 P9
-        │
-        ├─► Wave 2: P10 (runner; needs P1 P2 P4 P5 P6 P7)   ║  P12a (UI editors; needs P8 P9)  [PARALLEL]
-        │
-        └─► Wave 3 [PARALLEL]: P11 (CLI; P8 P10)  P12b (UI runs; P10 P12a)  P13 (E2E; P3 P10 P11)
-                │
-                └─► P14 (docs + release 0.1.0)
+```mermaid
+flowchart LR
+    P0[P0 scaffold]
+    subgraph w1["Wave 1 (parallel)"]
+        P1[P1 workspace]
+        P2[P2 browser]
+        P3[P3 demo chatbot]
+        P4[P4 config]
+        P5[P5 report]
+        P6[P6 simulator]
+        P7[P7 judge]
+        P8[P8 server]
+        P9[P9 UI scaffold]
+    end
+    subgraph w2["Wave 2 (parallel)"]
+        P10[P10 runner]
+        P12a[P12a UI editors]
+    end
+    subgraph w3["Wave 3 (parallel)"]
+        P11[P11 CLI]
+        P12b[P12b UI runs]
+        P13[P13 E2E]
+    end
+    P14[P14 docs + release 0.1.0]
+
+    P0 --> P1 & P2 & P3 & P4 & P5 & P6 & P7 & P8 & P9
+    P1 & P2 & P4 & P5 & P6 & P7 --> P10
+    P8 & P9 --> P12a
+    P8 & P10 --> P11
+    P10 & P12a --> P12b
+    P3 & P10 & P11 --> P13
+    P11 & P12b & P13 --> P14
 ```
 
 | Phase | Brief | Commit | Subagent profile |
