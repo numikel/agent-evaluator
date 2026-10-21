@@ -1,7 +1,7 @@
 # Target: the chatbot under test. Only `url` is required — the simulator discovers the chat UI on
 # its own. Everything else is optional help for tricky interfaces.
 name: demo-chatbot
-description: Built-in demo chatbot shipped with agent-evaluator (npm run demo).
+description: Built-in demo chatbot shipped with agent-evaluator (`agent-evaluator demo`).
 url: http://localhost:3999
 
 # auth:

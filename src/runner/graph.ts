@@ -33,6 +33,7 @@ import type {
 	RunEvent,
 	RunRecord,
 	Scenario,
+	Target,
 	Verdict,
 } from "../schemas/index.js";
 import { computeOutcome, GOAL_REACHED_CRITERION_ID } from "../schemas/index.js";
@@ -130,6 +131,31 @@ export const REPORT_FILE = "report.html";
 
 const errorMessage = (error: unknown): string =>
 	error instanceof Error ? error.message : String(error);
+
+/** Chromium/Node network error codes that mean "nothing is listening at the target URL". */
+const UNREACHABLE_CODES = [
+	"ERR_CONNECTION_REFUSED",
+	"ERR_CONNECTION_TIMED_OUT",
+	"ERR_NAME_NOT_RESOLVED",
+	"ERR_ADDRESS_UNREACHABLE",
+	"ECONNREFUSED",
+] as const;
+
+/**
+ * Turns Playwright's `page.goto: net::ERR_CONNECTION_REFUSED at http://…` into an actionable
+ * message (start the chatbot, or fix the target file); returns `undefined` for any other failure.
+ */
+export function unreachableTargetError(target: Target, error: unknown): Error | undefined {
+	const message = errorMessage(error);
+	const code = UNREACHABLE_CODES.find((c) => message.includes(c));
+	if (!code) return undefined;
+	return new Error(
+		`Target "${target.name}" is not reachable at ${target.url} (${code}). ` +
+			"Start the chatbot first - for the built-in demo run `agent-evaluator demo` in another " +
+			`terminal - or fix targets/${target.name}.yaml.`,
+		{ cause: error },
+	);
+}
 
 /** Closes the session and removes the temporary download directory. Never throws. */
 export async function releaseBrowser(ctx: RunContext): Promise<void> {
@@ -276,7 +302,11 @@ export function buildRunGraph(ctx: RunContext) {
 		ctx.recorder = recorder;
 
 		emit({ type: "log", level: "info", message: `Opening ${target.url}` });
-		await session.open(target.url);
+		try {
+			await session.open(target.url);
+		} catch (error) {
+			throw unreachableTargetError(target, error) ?? error;
+		}
 		if (target.auth?.login_steps) {
 			emit({ type: "log", level: "info", message: "Running login steps (turn 0)" });
 			await runLoginPass(ctx, session, recorder);

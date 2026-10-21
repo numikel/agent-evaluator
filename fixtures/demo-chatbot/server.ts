@@ -1,15 +1,18 @@
 /**
  * Demo chatbot fixture: a tiny Hono app that serves the vanilla-JS chat page, streams scripted
  * replies over SSE, generates invoice PDFs and accepts uploads. Used by the E2E tests, the README
- * quick start and manual testing (`npm run demo`).
+ * quick start and manual testing (`npm run demo` in the repository, `agent-evaluator demo` from the
+ * published package).
  */
 
+import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
+import { packageRoot } from "../../src/server/paths.js";
 import {
 	capitalize,
 	type DemoMessage,
@@ -27,6 +30,8 @@ export const DEFAULT_DEMO_PORT = 3999;
 export interface DemoAppOptions {
 	/** Multiplier for every artificial delay (token pacing, `slow` mode). `0` makes tests instant. */
 	delayScale?: number;
+	/** Behaviour used when neither the page (`?mode=`) nor the request body names one. */
+	defaultMode?: DemoMode;
 }
 
 export interface DemoServer {
@@ -43,7 +48,16 @@ interface ChatRequest {
 
 const TOKEN_DELAY_MS = 25;
 const HEARTBEAT_MS = 500;
-const PUBLIC_DIR = join(dirname(fileURLToPath(import.meta.url)), "public");
+/**
+ * The static chat page lives next to this module in the source tree; the bundled CLI
+ * (`dist/cli.js`) finds it through the package root, so `agent-evaluator demo` works from npm.
+ */
+export function publicDir(): string {
+	const local = join(dirname(fileURLToPath(import.meta.url)), "public");
+	if (existsSync(local)) return local;
+	return join(packageRoot(import.meta.url), "fixtures", "demo-chatbot", "public");
+}
+const PUBLIC_DIR = publicDir();
 
 const STATIC_FILES: Record<string, { file: string; type: string }> = {
 	"/": { file: "index.html", type: "text/html; charset=utf-8" },
@@ -131,7 +145,9 @@ export function createDemoApp(options: DemoAppOptions = {}): Hono {
 			return c.json({ error: "expected { messages: {role, text}[] , mode? }" }, 400);
 		}
 		const queryMode = c.req.query("mode");
-		const mode: DemoMode = isDemoMode(queryMode) ? queryMode : (request.mode ?? "normal");
+		const mode: DemoMode = isDemoMode(queryMode)
+			? queryMode
+			: (request.mode ?? options.defaultMode ?? "normal");
 		const answer = reply(request.messages, mode);
 		state.chats += 1;
 
@@ -227,15 +243,4 @@ export function startDemo(
 		});
 		server.once("error", reject);
 	});
-}
-
-const isMain =
-	typeof process.argv[1] === "string" && import.meta.url === pathToFileURL(process.argv[1]).href;
-
-if (isMain) {
-	const port = Number(process.env.DEMO_PORT ?? DEFAULT_DEMO_PORT);
-	const demo = await startDemo(port);
-	console.log(
-		`Demo chatbot listening on ${demo.url} (modes: ?mode=normal|slow|offtopic|broken|noattach)`,
-	);
 }

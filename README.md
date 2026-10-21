@@ -121,6 +121,7 @@ steps but have had less testing, so please report anything that behaves differen
    ```
 5. `agent-evaluator serve` binds `127.0.0.1:4747` only; if Windows Firewall asks, no inbound rule
    is needed. Write paths in YAML with forward slashes (`storage_state: ./auth/demo.json`).
+   Run the demo chatbot (`agent-evaluator demo`) in a second Windows Terminal tab while `serve` runs.
 6. WSL2 works like Linux below. Headed runs (`run --headed`) need WSLg (Windows 11) or an X server.
 
 ### macOS
@@ -181,8 +182,14 @@ agent-evaluator doctor        # keys, Chromium, workspace files, configured mode
 agent-evaluator serve --open  # web UI on http://127.0.0.1:4747
 ```
 
-Try it against the built-in demo chatbot first: `npm run demo` in this repository starts it on port
-3999 and the `demo-chatbot` target created by `init` already points there. Then, from your workspace:
+Try it against the built-in demo chatbot first. Open a second terminal and start it (port 3999; the
+`demo-chatbot` target created by `init` already points there):
+
+```bash
+agent-evaluator demo
+```
+
+Then, from your workspace:
 
 ```bash
 agent-evaluator run invoice-export-september
@@ -269,7 +276,8 @@ agent-evaluator <command> [options]
 | `validate` | `-w, --workspace <dir>` | Validates every workspace file against its schema, checks that `name:` matches the file name and that each scenario's persona, target and rubric exist. Lists issues as `<path>: <field>: <message>`. |
 | `report <runId>` | `--open` open the rendered report · `-w, --workspace <dir>` | Re-renders `report.html`, `summary.json` and `junit.xml` of a finished run from its stored artifacts, using `scenario.snapshot.yaml` (falls back to the current workspace files). |
 | `templates` | `-o, --out <dir>` write all template files into a directory · `-k, --kind <kind>` only this kind (`persona`, `scenario`, `rubric`, `target`, `evaluator`, `settings`); printed to stdout when `--out` is absent | Exports the shipped templates. Without options it lists them. |
-| `doctor` | `-w, --workspace <dir>` | Prints one ✓/✗ line per check with a fix hint: each provider's key, Chromium for Playwright, workspace files, and whether the models configured for `simulator` and `judge` point at a configured provider. |
+| `demo` | `-p, --port <port>` (default: 3999) · `-m, --mode <mode>` default behaviour: `normal`, `slow`, `offtopic`, `broken`, `noattach` (a page can override it with `?mode=`) | Starts the built-in demo chatbot that the template target points at, so the quick start works without cloning the repository. Ctrl+C stops it. |
+| `doctor` | `-w, --workspace <dir>` | Prints one ✓/✗ line per check with a fix hint: each provider's key, Chromium for Playwright, workspace files, whether the models configured for `simulator` and `judge` point at a configured provider, and whether each target URL answers (informational). |
 
 Global options: `-V, --version`, `-h, --help` (also per command).
 
@@ -560,6 +568,7 @@ The `run` command exits `1` when any run is FAILED or ERROR, so the job fails wi
 | Symptom | Fix |
 | --- | --- |
 | `Chromium not found. Run npx playwright install chromium or set AE_CHROMIUM_PATH …` | Run `npx playwright install chromium` (in CI: `npx playwright install --with-deps chromium`), or point `AE_CHROMIUM_PATH` at an existing Chromium/Chrome binary. `agent-evaluator doctor` shows which path is checked. |
+| `Target "demo-chatbot" is not reachable at http://localhost:3999 (ERR_CONNECTION_REFUSED)` | Nothing is listening at the target URL. For the built-in demo start `agent-evaluator demo` in another terminal; for your own bot check the `url` in `targets/<name>.yaml`. `agent-evaluator doctor` probes every target. |
 | `provider 'x' is not configured (set X_API_KEY)` / the settings page says no provider is configured | Export the variable for the provider named in `agent-evaluator.yaml` (`doctor` prints the exact `export` line), or inject it with dotenvx / `op run` / sops. The UI only offers providers whose key is present. |
 | Model list shows "fallback list" | The provider's listing endpoint failed (network, key, quota). The run still works with any model id you type; click "Refresh models" after fixing the cause. |
 | `send_message` returns `(no reply detected …)` or the bot's reply is cut off | Raise `timeouts.response_ms` / `stable_ms` in the target for slow backends; lower `stable_ms` for snappy ones. Check the interim screenshots in the filmstrip to see what the page did. |
