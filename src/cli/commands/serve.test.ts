@@ -76,7 +76,7 @@ describe("serve", () => {
 			port: 4747,
 			handleSignals: false,
 		});
-		expect(captured.app[0]).toMatchObject({ version: "0.1.0" });
+		expect(captured.app[0]).toMatchObject({ version: "0.1.1" });
 		expect(captured.app[0]?.workspace).toBeDefined();
 		expect(captured.app[0]?.runner).toBeDefined();
 		expect(cli.stdout()).toContain("http://127.0.0.1:4747");
