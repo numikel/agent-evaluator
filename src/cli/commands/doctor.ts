@@ -1,6 +1,7 @@
 import type { Command } from "commander";
-import { runDoctor } from "../../config/index.js";
+import { runDoctor, type TargetProbe } from "../../config/index.js";
 import type { DoctorCheck } from "../../config/types.js";
+import type { Workspace } from "../../workspace/types.js";
 import { openContext } from "../context.js";
 import type { CliDeps } from "../deps.js";
 import { CHECK, CliExitError, CROSS, createPalette, plural } from "../output.js";
@@ -10,10 +11,26 @@ export function isBlocking(check: DoctorCheck): boolean {
 	return !check.ok && (check.id.startsWith("model:") || check.id === "browser:chromium");
 }
 
+/** Every parseable `targets/*.yaml`; a broken file is skipped here (`validate` reports it). */
+async function loadTargets(workspace: Workspace): Promise<TargetProbe[]> {
+	const probes: TargetProbe[] = [];
+	for (const { name } of await workspace.list("target")) {
+		try {
+			const target = await workspace.loadTarget(name);
+			probes.push({ name, url: target.url });
+		} catch {
+			// reported by `agent-evaluator validate`
+		}
+	}
+	return probes;
+}
+
 export function registerDoctor(program: Command, deps: CliDeps): void {
 	program
 		.command("doctor")
-		.description("Check providers, Chromium, the workspace layout and the configured models")
+		.description(
+			"Check providers, Chromium, the workspace layout, the configured models and whether targets answer",
+		)
 		.option("-w, --workspace <dir>", "workspace directory (default: current directory)")
 		.action(async (options: { workspace?: string }) => {
 			const palette = createPalette(deps.color);
@@ -25,6 +42,8 @@ export function registerDoctor(program: Command, deps: CliDeps): void {
 				registry: deps.providers,
 				exists: deps.exists,
 				chromiumExecutablePath: deps.chromiumExecutablePath,
+				targets: await loadTargets(ctx.workspace),
+				fetch: deps.fetch,
 			});
 
 			const width = Math.max(...checks.map((c) => c.label.length));

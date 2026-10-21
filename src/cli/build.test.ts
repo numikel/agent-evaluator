@@ -13,7 +13,16 @@ const DIST_CLI = join(packageRoot(), "dist", "cli.js");
 describe.skipIf(!existsSync(DIST_CLI))("dist/cli.js", () => {
 	it("--help lists every command", () => {
 		const help = execFileSync(process.execPath, [DIST_CLI, "--help"], { encoding: "utf8" });
-		for (const command of ["init", "serve", "run", "validate", "report", "templates", "doctor"]) {
+		for (const command of [
+			"init",
+			"serve",
+			"run",
+			"validate",
+			"report",
+			"templates",
+			"doctor",
+			"demo",
+		]) {
 			expect(help).toContain(command);
 		}
 	});

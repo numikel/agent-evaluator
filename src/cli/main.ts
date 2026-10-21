@@ -1,11 +1,12 @@
 /**
- * CLI entry point: `agent-evaluator init | serve | run | validate | report | templates | doctor`.
+ * CLI entry point: `agent-evaluator init | serve | run | validate | report | templates | doctor | demo`.
  * `buildCli(deps)` returns the commander program (tests inject fakes and capture output);
  * `runCli(argv, deps)` parses and maps every outcome to an exit code without exiting the process.
  */
 import { realpathSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 import { Command, CommanderError } from "commander";
+import { registerDemo } from "./commands/demo.js";
 import { registerDoctor } from "./commands/doctor.js";
 import { registerInit } from "./commands/init.js";
 import { registerReport } from "./commands/report.js";
@@ -35,6 +36,7 @@ export function buildCli(overrides: Partial<CliDeps> = {}): Command {
 	registerReport(program, deps);
 	registerTemplates(program, deps);
 	registerDoctor(program, deps);
+	registerDemo(program, deps);
 	return program;
 }
 

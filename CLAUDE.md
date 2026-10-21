@@ -20,7 +20,7 @@ that built it (requirements, hand-off notes, roadmap); `README.md` is the user-f
 - `npm run test:e2e` — full pipeline against the demo chatbot on real Chromium (~20 s; needs `npx playwright install chromium` or `AE_CHROMIUM_PATH`)
 - `npm run test:live` — opt-in smoke test with real models (`AE_LIVE_LLM=1`)
 - `npm run build` — `dist/` (tsdown) + `dist/ui` (Vite)
-- `npm run demo` — starts the demo chatbot fixture on port 3999
+- `npm run demo` (or `agent-evaluator demo` from the built CLI) — starts the demo chatbot fixture on port 3999
 - `npx tsx docs/screenshots/capture.ts` — regenerates the README screenshots (after `npm run build`)
 
 ## Testing strategy

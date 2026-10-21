@@ -90,4 +90,84 @@ describe("runDoctor", () => {
 		expect(check?.ok).toBe(false);
 		expect(check?.detail).toContain("nope");
 	});
+
+	describe("target reachability", () => {
+		const base = {
+			secrets: new StaticSecretsProvider({ OPENAI_API_KEY: "k1", ANTHROPIC_API_KEY: "k2" }),
+			settings,
+			workspaceRoot: "/ws",
+			exists: () => true,
+			chromiumExecutablePath: () => "/opt/chromium/chrome",
+		};
+
+		it("probes nothing when no targets are given", async () => {
+			let calls = 0;
+			const checks = await runDoctor({
+				...base,
+				fetch: async () => {
+					calls += 1;
+					return new Response("");
+				},
+			});
+			expect(calls).toBe(0);
+			expect(checks.some((c) => c.id.startsWith("target:"))).toBe(false);
+		});
+
+		it("reports a target as reachable on any HTTP response", async () => {
+			const seen: string[] = [];
+			const checks = await runDoctor({
+				...base,
+				targets: [{ name: "demo-chatbot", url: "http://localhost:3999" }],
+				fetch: async (input, init) => {
+					seen.push(String(input));
+					expect(init?.signal).toBeInstanceOf(AbortSignal);
+					return new Response("nope", { status: 404 });
+				},
+			});
+			const check = checks.find((c) => c.id === "target:demo-chatbot");
+			expect(seen).toEqual(["http://localhost:3999"]);
+			expect(check).toMatchObject({ ok: true, label: "Target demo-chatbot" });
+			expect(check?.detail).toBe("reachable at http://localhost:3999 (HTTP 404)");
+			expect(check?.fix).toBeUndefined();
+		});
+
+		it("reports the connection error code and a start-or-fix hint when the probe fails", async () => {
+			const checks = await runDoctor({
+				...base,
+				targets: [
+					{ name: "demo-chatbot", url: "http://localhost:3999" },
+					{ name: "staging", url: "https://bot.example.test" },
+				],
+				fetch: async (input) => {
+					if (String(input).includes("3999")) {
+						throw new TypeError("fetch failed", { cause: { code: "ECONNREFUSED" } });
+					}
+					throw new DOMException("The operation was aborted due to timeout", "TimeoutError");
+				},
+			});
+			const demo = checks.find((c) => c.id === "target:demo-chatbot");
+			expect(demo?.ok).toBe(false);
+			expect(demo?.detail).toBe("not reachable at http://localhost:3999 (ECONNREFUSED)");
+			expect(demo?.fix).toContain("agent-evaluator demo");
+			expect(demo?.fix).toContain("targets/demo-chatbot.yaml");
+			const staging = checks.find((c) => c.id === "target:staging");
+			expect(staging?.detail).toBe("not reachable at https://bot.example.test (timed out)");
+			expect(staging?.fix).toContain("targets/staging.yaml");
+		});
+
+		it("gives up on a hanging target after the timeout", async () => {
+			const checks = await runDoctor({
+				...base,
+				targets: [{ name: "slow", url: "http://localhost:1" }],
+				targetTimeoutMs: 20,
+				fetch: (_input, init) =>
+					new Promise((_resolve, reject) => {
+						init?.signal?.addEventListener("abort", () => reject(init.signal?.reason));
+					}),
+			});
+			const slow = checks.find((c) => c.id === "target:slow");
+			expect(slow?.ok).toBe(false);
+			expect(slow?.detail).toContain("timed out");
+		});
+	});
 });

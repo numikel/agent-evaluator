@@ -41,7 +41,7 @@ traits: impatient, non-technical, direct
 interaction style: short-messages, occasional-typos, asks-follow-up-when-unclear
 
 ## Target
-demo-chatbot — http://localhost:3999 — Built-in demo chatbot shipped with agent-evaluator (npm run demo).
+demo-chatbot — http://localhost:3999 — Built-in demo chatbot shipped with agent-evaluator (`agent-evaluator demo`).
 hints:
 - The chat widget is visible immediately; messages are sent with the "Send" button or Enter.
 - Download links appear inside bot messages as buttons labelled "Download".

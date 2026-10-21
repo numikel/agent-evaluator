@@ -2,7 +2,13 @@
  * Config module (P4): settings resolution, environment secrets, provider registry, model factory
  * and doctor checks. Contracts live in `./types.ts`.
  */
-export { CHROMIUM_INSTALL_HINT, type DoctorOptions, runDoctor } from "./doctor.js";
+export {
+	CHROMIUM_INSTALL_HINT,
+	type DoctorOptions,
+	runDoctor,
+	TARGET_PROBE_TIMEOUT_MS,
+	type TargetProbe,
+} from "./doctor.js";
 export { type EffortKnob, effortParams } from "./effort.js";
 export {
 	type InitChatModelFn,

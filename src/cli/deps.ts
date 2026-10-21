@@ -15,6 +15,11 @@ import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import type { Hono } from "hono";
 import pino, { type Logger } from "pino";
+import {
+	type DemoAppOptions,
+	type DemoServer,
+	startDemo,
+} from "../../fixtures/demo-chatbot/server.js";
 import { PlaywrightSessionFactory, resolveChromiumExecutable } from "../browser/index.js";
 import {
 	createProviderRegistry,
@@ -59,6 +64,10 @@ export type CliDeps = {
 	createRunner: (input: CreateRunnerInput) => RunnerHandle;
 	createApp: (deps: ServerDeps) => Hono;
 	startServer: (options: StartServerOptions) => Promise<RunningServer>;
+	/** Starts the built-in demo chatbot (`agent-evaluator demo`). */
+	startDemo: (port: number, options?: DemoAppOptions) => Promise<DemoServer>;
+	/** HTTP client used by `doctor` to probe target URLs. */
+	fetch: typeof fetch;
 	/** Whether a Chromium build is available for Playwright (reported by the settings API). */
 	browserInstalled: () => Promise<boolean>;
 	/** Chromium path the doctor checks; the default honours `AE_CHROMIUM_PATH` like the factory. */
@@ -136,6 +145,8 @@ export function createCliDeps(overrides: Partial<CliDeps> = {}): CliDeps {
 			}),
 		createApp,
 		startServer,
+		startDemo,
+		fetch: (input, init) => globalThis.fetch(input, init),
 		browserInstalled: async () => {
 			try {
 				return existsSync(resolveChromiumExecutable());

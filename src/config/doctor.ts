@@ -11,6 +11,10 @@ import type {
 } from "./types.js";
 
 export const CHROMIUM_INSTALL_HINT = "npx playwright install chromium";
+export const TARGET_PROBE_TIMEOUT_MS = 3000;
+
+/** A target the doctor probes with one `GET`: the workspace's `targets/<name>.yaml`. */
+export type TargetProbe = { name: string; url: string };
 
 export type DoctorOptions = {
 	secrets: SecretsProvider;
@@ -21,6 +25,12 @@ export type DoctorOptions = {
 	exists?: (path: string) => boolean;
 	/** Injected for tests; defaults to Playwright's `chromium.executablePath()`. */
 	chromiumExecutablePath?: () => string | Promise<string>;
+	/** Targets to probe for reachability (informational, never blocking). Defaults to none. */
+	targets?: TargetProbe[];
+	/** Injected for tests; defaults to the global `fetch`. */
+	fetch?: typeof fetch;
+	/** Per-target probe timeout; defaults to `TARGET_PROBE_TIMEOUT_MS`. */
+	targetTimeoutMs?: number;
 };
 
 const defaultChromiumPath = async (): Promise<string> => {
@@ -148,10 +158,61 @@ function modelChecks(
 	return checks;
 }
 
+const targetFixHint = (name: string): string =>
+	`start the chatbot (for the built-in demo: \`agent-evaluator demo\` in another terminal) or fix targets/${name}.yaml`;
+
+/** `fetch failed` hides the useful part (`ECONNREFUSED`) in `cause`; timeouts are DOMExceptions. */
+function probeFailureReason(error: unknown): string {
+	if (error instanceof Error) {
+		const cause = error.cause;
+		if (cause && typeof cause === "object" && "code" in cause && typeof cause.code === "string") {
+			return cause.code;
+		}
+		if (error.name === "TimeoutError") return "timed out";
+		return error.message;
+	}
+	return String(error);
+}
+
+/**
+ * One `GET` per target. Any HTTP response (even 4xx/5xx) means something listens at the URL, which
+ * is all a run needs to start; a connection error or timeout is reported with the reason.
+ */
+async function targetChecks(
+	targets: TargetProbe[],
+	fetchFn: typeof fetch,
+	timeoutMs: number,
+): Promise<DoctorCheck[]> {
+	return Promise.all(
+		targets.map(async ({ name, url }): Promise<DoctorCheck> => {
+			const id = `target:${name}`;
+			const label = `Target ${name}`;
+			try {
+				const response = await fetchFn(url, {
+					method: "GET",
+					redirect: "manual",
+					signal: AbortSignal.timeout(timeoutMs),
+				});
+				await response.body?.cancel().catch(() => undefined);
+				return { id, label, ok: true, detail: `reachable at ${url} (HTTP ${response.status})` };
+			} catch (error) {
+				return {
+					id,
+					label,
+					ok: false,
+					detail: `not reachable at ${url} (${probeFailureReason(error)})`,
+					fix: targetFixHint(name),
+				};
+			}
+		}),
+	);
+}
+
 /**
  * Environment diagnostics for `agent-evaluator doctor` and the settings page: provider presence,
  * Chromium installation, workspace layout and whether configured models point at configured
- * providers. Never includes secret values.
+ * providers, plus (when `targets` are given) whether each target URL answers. Never includes
+ * secret values.
  */
 export async function runDoctor(options: DoctorOptions): Promise<DoctorCheck[]> {
 	const registry = options.registry ?? createProviderRegistry();
@@ -161,5 +222,10 @@ export async function runDoctor(options: DoctorOptions): Promise<DoctorCheck[]> 
 		await browserCheck(options, exists),
 		...workspaceChecks(options.workspaceRoot, exists),
 		...modelChecks(options.settings, registry, options.secrets),
+		...(await targetChecks(
+			options.targets ?? [],
+			options.fetch ?? ((input, init) => globalThis.fetch(input, init)),
+			options.targetTimeoutMs ?? TARGET_PROBE_TIMEOUT_MS,
+		)),
 	];
 }

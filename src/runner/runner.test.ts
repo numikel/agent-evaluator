@@ -363,6 +363,43 @@ describe("createRunner", () => {
 		expect(models.models("judge")[0]?.callCount).toBe(0);
 	});
 
+	it("an unreachable target gets an actionable error naming the url and the demo command", async () => {
+		const factory = new FakeSessionFactory({
+			make: () =>
+				new SlowFakeSession({
+					failOpen: "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3999/",
+				}),
+		});
+		const models = new ScriptedModelFactory({
+			simulator: () => new ScriptedChatModel({ script: [], strict: true }),
+			judge: () => judgeModel(true),
+		});
+		runner = createRunner({
+			workspace: ws.workspace,
+			runStore: ws.runStore,
+			browserFactory: factory,
+			modelFactory: models,
+		});
+
+		const { runIds } = await runner.start({ scenario: SCENARIO });
+		const runId = runIds[0] as string;
+		const events: RunEvent[] = [];
+		runner.subscribe(runId, (e) => {
+			events.push(e);
+		});
+		const record = await runner.wait(runId);
+
+		expect(record.status).toBe("ERROR");
+		expect(record.error).toContain(
+			'Target "demo-chatbot" is not reachable at http://localhost:3999',
+		);
+		expect(record.error).toContain("(ERR_CONNECTION_REFUSED)");
+		expect(record.error).toContain("agent-evaluator demo");
+		expect(record.error).toContain("targets/demo-chatbot.yaml");
+		const last = events.at(-1);
+		expect(last?.type === "error" && last.message).toContain("agent-evaluator demo");
+	});
+
 	it("seam 4: repeat 3 with concurrency 2 runs three times with at most two sessions alive", async () => {
 		await editResource(ws.workspace, "settings", undefined, (raw) =>
 			raw.replace("concurrency: 1", "concurrency: 2"),

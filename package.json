@@ -42,11 +42,12 @@
 		"dist",
 		"templates",
 		"!templates/*.test.ts",
+		"fixtures/demo-chatbot/public",
 		"NOTICE"
 	],
 	"scripts": {
 		"dev": "tsx watch src/cli/main.ts serve",
-		"demo": "tsx fixtures/demo-chatbot/server.ts",
+		"demo": "tsx fixtures/demo-chatbot/main.ts",
 		"build": "tsdown && vite build --config ui/vite.config.ts",
 		"start": "node dist/cli.js serve",
 		"lint": "biome check .",
