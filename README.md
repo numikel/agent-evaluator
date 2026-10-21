@@ -92,6 +92,85 @@ npx playwright install chromium
 npm run build
 ```
 
+## Platform setup
+
+The tool is plain Node.js with no native modules; the only platform-specific part is the Chromium
+build Playwright drives. CI runs on Ubuntu (Node 24 and 26); macOS and Windows follow the same
+steps but have had less testing, so please report anything that behaves differently.
+
+### Windows
+
+1. Install Node.js ≥ 22.13 (24 LTS recommended): `winget install OpenJS.NodeJS.LTS`, or use
+   [fnm](https://github.com/Schniz/fnm) / nvm-windows.
+2. In PowerShell or Windows Terminal:
+   ```powershell
+   npm install -g agent-evaluator
+   npx playwright install chromium        # goes to %LOCALAPPDATA%\ms-playwright
+   ```
+   If PowerShell refuses to run `npm`/`npx` ("running scripts is disabled on this system"), either
+   call `npm.cmd` / `npx.cmd` or allow signed scripts for your user:
+   `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`.
+3. Set keys for the current session with `$env:ANTHROPIC_API_KEY = "sk-..."` (PowerShell) or
+   `set ANTHROPIC_API_KEY=sk-...` (cmd). To persist for new terminals use
+   `setx ANTHROPIC_API_KEY "sk-..."` or *System Properties → Environment Variables*.
+   `dotenvx` and the 1Password CLI work on Windows too.
+4. To reuse an installed browser instead of downloading one, point `AE_CHROMIUM_PATH` at Chrome or
+   Edge (both are Chromium):
+   ```powershell
+   $env:AE_CHROMIUM_PATH = "C:\Program Files\Google\Chrome\Application\chrome.exe"
+   ```
+5. `agent-evaluator serve` binds `127.0.0.1:4747` only; if Windows Firewall asks, no inbound rule
+   is needed. Write paths in YAML with forward slashes (`storage_state: ./auth/demo.json`).
+6. WSL2 works like Linux below. Headed runs (`run --headed`) need WSLg (Windows 11) or an X server.
+
+### macOS
+
+1. Install Node.js ≥ 22.13: `brew install node@24` (or fnm / nvm). Apple Silicon and Intel both
+   get a native Chromium build from Playwright.
+2. ```bash
+   npm install -g agent-evaluator
+   npx playwright install chromium        # goes to ~/Library/Caches/ms-playwright
+   ```
+3. Set keys in the shell (`export ANTHROPIC_API_KEY=sk-...`; add to `~/.zshrc` to persist), or use
+   `dotenvx` / `op run` (`brew install 1password-cli`) so nothing lands in plain text.
+4. To reuse the installed Chrome:
+   ```bash
+   export AE_CHROMIUM_PATH="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+   ```
+5. The first headed run may trigger a macOS prompt to allow Chromium to accept incoming
+   connections; it can be declined, the tool only talks to the browser locally.
+
+### Linux
+
+1. Install Node.js ≥ 22.13 from your distribution, [NodeSource](https://github.com/nodesource/distributions) or fnm.
+2. Chromium needs a few system libraries (libnss3, libatk, libgbm, …). The simplest way is to let
+   Playwright install them:
+   ```bash
+   npm install -g agent-evaluator
+   npx playwright install --with-deps chromium   # uses sudo/apt on Debian/Ubuntu
+   ```
+   On other distributions install the distro's `chromium` package and point the tool at it:
+   `export AE_CHROMIUM_PATH=/usr/bin/chromium` (or `/usr/bin/google-chrome`).
+3. Headless is the default, so no display is required. For `--headed` on a server use
+   `xvfb-run agent-evaluator run …`.
+4. Set keys with `export`, a git-ignored `.env`, or `direnv` + `sops`.
+5. In Docker or CI, the `mcr.microsoft.com/playwright:v1.64.1-noble` image already contains a
+   matching Chromium; otherwise run `npx playwright install --with-deps chromium` in the pipeline
+   (see [CI usage](#ci-usage)).
+
+### Environment variables by shell
+
+| Action | bash / zsh | PowerShell | cmd |
+| --- | --- | --- | --- |
+| Set for this session | `export X=value` | `$env:X = "value"` | `set X=value` |
+| Set for one command | `X=value agent-evaluator run …` | `$env:X="value"; agent-evaluator run …` | `set X=value && agent-evaluator run …` |
+| Persist for new shells | add `export` to `~/.bashrc` / `~/.zshrc` | `setx X "value"` | `setx X "value"` |
+| Unset | `unset X` | `Remove-Item Env:X` | `set X=` |
+
+Playwright's browser cache can be relocated on every OS with `PLAYWRIGHT_BROWSERS_PATH`;
+`AE_CHROMIUM_PATH` always wins when set. `agent-evaluator doctor` prints which binary and which
+keys were found.
+
 ## Quick start
 
 ```bash
@@ -487,7 +566,9 @@ The `run` command exits `1` when any run is FAILED or ERROR, so the job fails wi
 | The run ends `blocked` | The simulator ran out of tool calls (8 per turn) without making progress, typically because it could not find the chat input. Add `hints` to the target (where the chat opens, how messages are sent) or enable `vision` for canvas-heavy UIs. |
 | Run stays `ERROR: cancelled` | The server was stopped or `cancel` was clicked; rerun the scenario. |
 | The simulated user types too early / the message is dropped | The browser waits (up to `timeouts.navigation_ms`) for a disabled chat input to become editable; UIs that silently drop input while busy need a target hint such as "wait for the typing indicator to disappear". |
-
+| Linux: `error while loading shared libraries: libnss3.so` (or similar) when the browser starts | Chromium's system libraries are missing: `npx playwright install --with-deps chromium`, or install your distribution's `chromium` package and set `AE_CHROMIUM_PATH`. |
+| Windows: `npm.ps1 cannot be loaded because running scripts is disabled` | Use `npm.cmd` / `npx.cmd`, or `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` once. |
+| Windows/WSL: `--headed` shows nothing | Headed mode needs a display: WSLg on Windows 11, or run headless (the default) and inspect the screenshots in the report. |
 ## Roadmap
 
 Multi-judge voting · SQLite run index and trend dashboard · LangSmith tracing · OS keychain
@@ -533,6 +614,9 @@ npm run test:coverage
 npm run test:e2e       # full pipeline against the demo chatbot (~20 s, needs Chromium)
 npm run test:live      # opt-in smoke test with real models (AE_LIVE_LLM=1, your keys)
 ```
+
+`test:live` sets `AE_LIVE_LLM=1` with POSIX syntax; on Windows run
+`$env:AE_LIVE_LLM = "1"; npm run test:e2e` in PowerShell instead.
 
 ### Code quality and validation
 
