@@ -7,6 +7,9 @@ name: Release
 # Either way the version must equal `package.json`. Requires the `NPM_TOKEN` repository secret (an
 # npm granular token with publish rights and 2FA bypass), added under Settings → Secrets and
 # variables → Actions. `--provenance` needs `id-token: write`; creating the tag needs `contents: write`.
+# With such a token npm *stages* the publish: the job ends green, but the version goes live only after a
+# maintainer approves it (npmjs.com → package → Staged Packages, or `npm stage approve <id>`).
+# Configuring Trusted Publishing for this workflow on npmjs.com removes both the token and that step.
 
 on:
   push:
@@ -27,8 +30,8 @@ jobs:
     name: Publish to npm
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           registry-url: https://registry.npmjs.org
