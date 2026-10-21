@@ -548,13 +548,26 @@ Development follows TDD (red → green → refactor) with one Conventional Commi
 ### Releasing
 
 1. Move the `changelog.d/` fragments into a new `CHANGELOG.md` section and bump `version` in
-   `package.json` (`chore(release): x.y.z`).
+   `package.json` (`chore(release): x.y.z`), merged to `main` through a pull request.
 2. `npm run verify && npm run test:e2e && npm pack --dry-run` — the tarball must contain only
    `dist/`, `templates/` (without tests), `README.md`, `LICENSE`, `NOTICE` and `package.json`.
-3. Tag `vx.y.z` and push the tag. The `release.yml` workflow builds and publishes to npm with
-   provenance; it needs an `NPM_TOKEN` repository secret (automation token), which has to be added
-   manually in the repository settings. Without the secret the workflow fails at `npm publish` and
-   nothing is published.
+3. Start the `release.yml` workflow in one of two ways:
+   - push the tag: `git tag vx.y.z && git push origin vx.y.z`, or
+   - Actions → Release → **Run workflow** on `main` with the version as input (works from the GitHub
+     mobile app); the job creates the `vx.y.z` tag itself.
+   The job checks that the version matches `package.json`, builds, and runs
+   `npm publish --provenance --access public`.
+4. Credentials: the repository secret `NPM_TOKEN` must hold an npm granular access token with
+   *Read and write (publish and stage)* permission and *Bypass two-factor authentication* enabled.
+   With such a token npm **stages** the publish: the job ends green, but the version goes live only
+   after a maintainer approves it on npmjs.com (package → *Staged Packages* → Approve, with a 2FA
+   code) or with `npm stage approve <stage-id>` (npm ≥ 11.15). Without the secret the job fails at
+   `npm publish` and nothing is published.
+5. Recommended once the package exists: configure
+   [Trusted Publishing](https://docs.npmjs.com/trusted-publishers/) on npmjs.com for this repository
+   and workflow (`numikel/agent-evaluator`, `release.yml`). Then the `NODE_AUTH_TOKEN` line can be
+   removed from the workflow, the secret deleted, and releases publish directly without the staging
+   step. The first OIDC publish must happen within two days of configuring it.
 
 ## Changelog
 
