@@ -1,4 +1,4 @@
-# agent-evaluator v0.1.0
+# agent-evaluator v0.1.1
 
 **Automated, UI-level evaluation of chatbots and AI agents: a persona-driven simulated user drives your bot through a real browser, every step is captured as evidence, and an LLM judge scores the conversation against your rubric.**
 
@@ -643,7 +643,8 @@ Development follows TDD (red → green → refactor) with one Conventional Commi
 1. Move the `changelog.d/` fragments into a new `CHANGELOG.md` section and bump `version` in
    `package.json` (`chore(release): x.y.z`), merged to `main` through a pull request.
 2. `npm run verify && npm run test:e2e && npm pack --dry-run` — the tarball must contain only
-   `dist/`, `templates/` (without tests), `README.md`, `LICENSE`, `NOTICE` and `package.json`.
+   `dist/`, `templates/` (without tests), `fixtures/demo-chatbot/public/` (the demo chat page),
+   `README.md`, `LICENSE`, `NOTICE` and `package.json`.
 3. Start the `release.yml` workflow in one of two ways:
    - push the tag: `git tag vx.y.z && git push origin vx.y.z`, or
    - Actions → Release → **Run workflow** on `main` with the version as input (works from the GitHub

@@ -12,6 +12,21 @@ at release time.
 
 See `changelog.d/`.
 
+## [0.1.1] — 2026-10-21
+
+Patch release for the first run from an npm install: the template target points at the demo
+chatbot, which previously existed only in the repository.
+
+### Added
+- `agent-evaluator demo [--port] [--mode]` starts the built-in demo chatbot from the npm package, so the quick start no longer needs a clone of the repository; the chat page ships in the package.
+- `agent-evaluator doctor` probes every target URL and reports whether it is reachable (informational).
+
+### Changed
+- A run whose target cannot be reached (`ERR_CONNECTION_REFUSED`, `ERR_NAME_NOT_RESOLVED`, …) now fails with an actionable message naming the target file and, for the demo, the `agent-evaluator demo` command.
+
+### Fixed
+- The demo server's "run when main" block, bundled into `dist/cli.js`, started the chatbot on port 3999 on every CLI invocation; it moved to its own entry file (`npm run demo`).
+
 ## [0.1.0] — 2026-10-19
 
 First release: the complete pipeline from workspace files to a scored HTML report, driven by a
@@ -134,5 +149,6 @@ a local web UI.
 - The demo chatbot disables the message input while a reply streams (visible as `[disabled]` in the accessibility tree) instead of silently discarding a message submitted too early.
 - The CLI loads a plain `.env` from the working directory into `EnvSecretsProvider`, as documented under "Secrets"; previously only variables already present in the environment were seen.
 
-[Unreleased]: https://github.com/numikel/agent-evaluator/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/numikel/agent-evaluator/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/numikel/agent-evaluator/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/numikel/agent-evaluator/releases/tag/v0.1.0

@@ -29,6 +29,6 @@ describe.skipIf(!existsSync(DIST_CLI))("dist/cli.js", () => {
 
 	it("--version prints the package version", () => {
 		const version = execFileSync(process.execPath, [DIST_CLI, "--version"], { encoding: "utf8" });
-		expect(version.trim()).toBe("0.1.0");
+		expect(version.trim()).toBe("0.1.1");
 	});
 });

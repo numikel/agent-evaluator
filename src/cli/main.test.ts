@@ -29,7 +29,7 @@ const COMMANDS = ["init", "serve", "run", "validate", "report", "templates", "do
 describe("cli", () => {
 	it("exposes the package version", () => {
 		const program = buildCli();
-		expect(program.version()).toBe("0.1.0");
+		expect(program.version()).toBe("0.1.1");
 		expect(program.commands.map((c) => c.name())).toContain("doctor");
 	});
 
@@ -47,7 +47,7 @@ describe("cli", () => {
 	it("--version prints the version", async () => {
 		const cli = createCliHarness();
 		expect(await cli.run("--version")).toBe(0);
-		expect(cli.stdout().trim()).toBe("0.1.0");
+		expect(cli.stdout().trim()).toBe("0.1.1");
 	});
 
 	it("unknown commands exit 1 with a usage error on stderr", async () => {

@@ -1,6 +1,6 @@
 {
 	"name": "agent-evaluator",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"description": "Automated UI-level evaluator for chatbots and AI agents: a persona-driven simulated user drives your chatbot through a real browser, collects screenshot evidence, and an LLM judge scores the conversation against YAML rubrics.",
 	"keywords": [
 		"chatbot",
