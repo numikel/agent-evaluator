@@ -272,7 +272,7 @@ function thumb(
 function badge(status: "PASSED" | "FAILED" | "ERROR"): string {
 	const cls =
 		status === "PASSED" ? "badge-pass" : status === "FAILED" ? "badge-fail" : "badge-error";
-	return `<span class="badge ${cls}">${status}</span>`;
+	return `<span class="badge ${cls}">${escapeHtml(status)}</span>`;
 }
 
 function gauge(input: ReportInput, status: "PASSED" | "FAILED" | "ERROR"): string {
@@ -295,7 +295,7 @@ function gauge(input: ReportInput, status: "PASSED" | "FAILED" | "ERROR"): strin
 	</div>
 	<dl class="gauge-facts">
 		<dt>Pass threshold</dt><dd>${percent(verdict.pass_threshold)}%</dd>
-		<dt>Turns</dt><dd>${verdict.turns_used} / ${verdict.max_turns}</dd>
+		<dt>Turns</dt><dd>${escapeHtml(verdict.turns_used)} / ${escapeHtml(verdict.max_turns)}</dd>
 		<dt>Goal reached</dt><dd class="${verdict.goal_reached ? "ok" : "bad"}">${verdict.goal_reached ? "yes" : "no"}</dd>
 	</dl>
 </div>`;
@@ -321,7 +321,8 @@ function header(input: ReportInput, status: "PASSED" | "FAILED" | "ERROR"): stri
 	if (run.finished_at) {
 		rows.push(["Duration", `${secondsBetween(run.started_at, run.finished_at)} s`]);
 	}
-	if (run.repeat_total > 1) rows.push(["Repeat", `${run.repeat_index} of ${run.repeat_total}`]);
+	if (run.repeat_total > 1)
+		rows.push(["Repeat", `${escapeHtml(run.repeat_index)} of ${escapeHtml(run.repeat_total)}`]);
 	const dl = rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("\n\t\t");
 	return `<header class="hero">
 	<div>
@@ -367,7 +368,7 @@ function criteriaTable(input: ReportInput, sources: ImageSources): string {
 	const row = (c: CriterionResult) => `<tr class="${c.pass ? "passed" : "failed"}">
 	<td><code>${escapeHtml(c.id)}</code></td>
 	<td>${escapeHtml(types.get(c.id) ?? "unknown")}</td>
-	<td class="num">${c.weight}</td>
+	<td class="num">${escapeHtml(c.weight)}</td>
 	<td>${c.required ? "yes" : "no"}</td>
 	<td class="num">${percent(c.score)}%</td>
 	<td class="${c.pass ? "ok" : "bad"}">${c.pass ? "pass" : "fail"}</td>
@@ -437,11 +438,11 @@ function transcriptSection(input: ReportInput, sources: ImageSources): string {
 			.filter(Boolean)
 			.map((f) =>
 				String(f).startsWith("step ")
-					? `<a href="#step-${e.step}">${escapeHtml(f)}</a>`
+					? `<a href="#step-${escapeHtml(e.step)}">${escapeHtml(f)}</a>`
 					: escapeHtml(f),
 			)
 			.join(" · ");
-		return `<div class="msg ${e.role}">
+		return `<div class="msg ${escapeHtml(e.role)}">
 	<span class="role">${e.role === "bot" ? "Bot" : "User"}</span>
 	<div><p>${escapeHtml(e.text)}</p><span class="when">${facts}</span></div>
 </div>`;
@@ -454,8 +455,8 @@ function transcriptSection(input: ReportInput, sources: ImageSources): string {
 				.map((s) =>
 					thumb(s.screenshot as string, `Step ${s.index} after: ${actionLabel(s)}`, sources),
 				);
-			return `<section class="turn" id="turn-${turn}">
-	<h3>Turn ${turn}</h3>
+			return `<section class="turn" id="turn-${escapeHtml(turn)}">
+	<h3>Turn ${escapeHtml(turn)}</h3>
 	${(turns.get(turn) ?? []).map(message).join("\n")}
 	${shots.length ? `<div class="shots">${shots.join("")}</div>` : ""}
 </section>`;
@@ -502,9 +503,9 @@ function filmstripSection(input: ReportInput, sources: ImageSources): string {
 		if (s.thought) details.push(`<div><strong>Thought:</strong> ${escapeHtml(s.thought)}</div>`);
 		if (s.result)
 			details.push(`<div><strong>Result:</strong> ${escapeHtml(truncate(s.result, 400))}</div>`);
-		return `<li><figure id="step-${s.index}" class="${s.error ? "has-error" : ""}">
+		return `<li><figure id="step-${escapeHtml(s.index)}" class="${s.error ? "has-error" : ""}">
 	<figcaption>
-		<span class="label">#${s.index} ${escapeHtml(label)}</span>
+		<span class="label">#${escapeHtml(s.index)} ${escapeHtml(label)}</span>
 		<span class="sub">${escapeHtml(sub)}</span>
 		${s.error ? `<div class="err">${escapeHtml(s.error)}</div>` : ""}
 	</figcaption>
@@ -519,10 +520,10 @@ function downloadsSection(downloads: DownloadArtifact[]): string {
 	if (downloads.length === 0) return '<p class="empty">No files were downloaded.</p>';
 	const card = (d: DownloadArtifact) => {
 		const facts = [
-			d.mime ?? "unknown type",
-			formatBytes(d.bytes),
-			d.step ? `<a href="#step-${d.step}">step ${d.step}</a>` : undefined,
-			d.turn !== undefined ? `turn ${d.turn}` : undefined,
+			escapeHtml(d.mime ?? "unknown type"),
+			escapeHtml(formatBytes(d.bytes)),
+			d.step ? `<a href="#step-${escapeHtml(d.step)}">step ${escapeHtml(d.step)}</a>` : undefined,
+			d.turn !== undefined ? `turn ${escapeHtml(d.turn)}` : undefined,
 		]
 			.filter(Boolean)
 			.join(" · ");
@@ -545,9 +546,9 @@ function consoleSection(entries: ConsoleEntry[]): string {
 		return `<p class="empty">No console errors or warnings.${hidden ? ` ${hidden} info/log entries not shown.` : ""}</p>`;
 	}
 	const row = (e: ConsoleEntry) => `<tr>
-	<td class="${e.level === "error" ? "bad" : ""}">${e.level}</td>
+	<td class="${e.level === "error" ? "bad" : ""}">${escapeHtml(e.level)}</td>
 	<td class="mono">${escapeHtml(e.at)}</td>
-	<td>${e.step ? `<a href="#step-${e.step}">${e.step}</a>` : "—"}</td>
+	<td>${e.step ? `<a href="#step-${escapeHtml(e.step)}">${escapeHtml(e.step)}</a>` : "—"}</td>
 	<td><pre>${escapeHtml(e.text)}</pre></td>
 </tr>`;
 	return `<table>
