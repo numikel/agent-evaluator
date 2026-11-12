@@ -55,7 +55,12 @@ export function truncate(text: string, max = 80): string {
 	return oneLine.length <= max ? oneLine : `${oneLine.slice(0, max - 1)}…`;
 }
 
-/** Turns a run-relative path into a safe DOM id, e.g. `steps/003/after.png` → `shot-steps-003-after-png`. */
+/**
+ * Turns a run-relative path into a safe DOM id, e.g. `steps/003/after.png` → `shot-steps-003-after-png`.
+ * Splits on runs of other characters instead of trimming with `^-+|-+$`, which backtracks
+ * quadratically on long runs of `-` (CodeQL js/polynomial-redos).
+ */
 export function anchorForScreenshot(relativePath: string): string {
-	return `shot-${relativePath.replace(/[^A-Za-z0-9]+/g, "-").replace(/^-+|-+$/g, "")}`;
+	const words = relativePath.split(/[^A-Za-z0-9]+/).filter((word) => word.length > 0);
+	return `shot-${words.join("-")}`;
 }
