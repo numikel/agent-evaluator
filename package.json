@@ -62,7 +62,7 @@
 		"verify": "npm run lint && npm run typecheck && npm run build && npm test"
 	},
 	"dependencies": {
-		"@hono/node-server": "^2.1.5",
+		"@hono/node-server": "^2.1.8",
 		"@langchain/anthropic": "^1.5.12",
 		"@langchain/core": "^1.2.18",
 		"@langchain/google-genai": "^2.3.2",
@@ -75,7 +75,7 @@
 		"@langchain/xai": "^1.4.17",
 		"commander": "^15.0.0",
 		"csv-parse": "^7.0.3",
-		"hono": "^4.13.13",
+		"hono": "^4.13.18",
 		"langchain": "^1.5.18",
 		"mammoth": "^1.13.0",
 		"pino": "^10.4.0",
