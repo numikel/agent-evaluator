@@ -1,4 +1,4 @@
-# agent-evaluator v0.1.1
+# agent-evaluator v0.1.2
 
 **Automated, UI-level evaluation of chatbots and AI agents: a persona-driven simulated user drives your bot through a real browser, every step is captured as evidence, and an LLM judge scores the conversation against your rubric.**
 
