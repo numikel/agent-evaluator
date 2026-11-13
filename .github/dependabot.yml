@@ -15,6 +15,9 @@ updates:
       # Playwright minor bumps change the bundled Chromium revision; review them deliberately.
       - dependency-name: playwright
         update-types: ["version-update:semver-minor"]
+      # unpdf 2 requires Node.js >= 24 while this package supports >= 22.13; lift when Node 22 is dropped.
+      - dependency-name: unpdf
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     schedule:

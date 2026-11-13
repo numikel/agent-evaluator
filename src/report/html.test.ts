@@ -77,6 +77,44 @@ describe("renderHtml", () => {
 		expect(html).not.toContain('onmouseover="alert(1)');
 	});
 
+	it("escapes fields typed as numbers or enums too: renderHtml is public API and run.json is plain data", async () => {
+		const input = passedFixture();
+		const [criterion] = input.verdict.criteria;
+		const [step] = input.steps;
+		const [message] = input.transcript;
+		const [download] = input.downloads;
+		const [entry] = input.console;
+		if (!criterion || !step || !message || !download || !entry) throw new Error("fixture changed");
+		input.run.repeat_total = 2;
+		const sinks: Array<[object, string]> = [
+			[input.run, "repeat_index"],
+			[input.verdict, "status"],
+			[input.verdict, "turns_used"],
+			[input.verdict, "max_turns"],
+			[criterion, "weight"],
+			[step, "index"],
+			[message, "role"],
+			[message, "step"],
+			[message, "turn"],
+			[download, "mime"],
+			[download, "step"],
+			[download, "turn"],
+			[entry, "level"],
+			[entry, "step"],
+		];
+		for (const [target, key] of sinks) {
+			const name = `${target === input.run ? "run" : target === input.verdict ? "verdict" : "item"}.${key}`;
+			(target as Record<string, unknown>)[key] = `"><b data-injected="${name}">x</b>`;
+		}
+		const html = await renderHtml(input);
+		const doc = new JSDOM(html).window.document;
+		const injected = [...doc.querySelectorAll("[data-injected]")].map((el) =>
+			el.getAttribute("data-injected"),
+		);
+		expect(injected).toEqual([]);
+		expect(html).not.toContain("<b data-injected=");
+	});
+
 	it("references screenshots by relative path and shows per-turn screenshots in the transcript", async () => {
 		const html = await renderHtml(passedFixture());
 		expect(html).toMatch(imgWithSrc("steps/003/after.png"));

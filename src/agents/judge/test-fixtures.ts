@@ -153,15 +153,25 @@ export function makeDownloads(bytes = 700): DownloadArtifact[] {
 
 /** A valid single-page PDF whose content stream draws `text` with the standard Helvetica font. */
 export function minimalPdf(text: string): Uint8Array {
-	const escaped = text.replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
-	const stream = `BT /F1 24 Tf 72 720 Td (${escaped}) Tj ET`;
+	return multiPagePdf([text]);
+}
+
+/** A valid PDF with one page per entry, each drawing its text with the standard Helvetica font. */
+export function multiPagePdf(pages: string[]): Uint8Array {
+	const fontId = 3 + pages.length * 2;
 	const objects = [
 		"<< /Type /Catalog /Pages 2 0 R >>",
-		"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-		"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>",
-		`<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`,
-		"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+		`<< /Type /Pages /Kids [${pages.map((_, i) => `${3 + i * 2} 0 R`).join(" ")}] /Count ${pages.length} >>`,
 	];
+	for (const [i, text] of pages.entries()) {
+		const escaped = text.replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
+		const stream = `BT /F1 24 Tf 72 720 Td (${escaped}) Tj ET`;
+		objects.push(
+			`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents ${4 + i * 2} 0 R /Resources << /Font << /F1 ${fontId} 0 R >> >> >>`,
+			`<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`,
+		);
+	}
+	objects.push("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
 	let out = "%PDF-1.4\n";
 	const offsets: number[] = [];
 	objects.forEach((body, i) => {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { extractText, TEXT_CAP_BYTES } from "./extractors.js";
-import { minimalPdf, PNG_1X1 } from "./test-fixtures.js";
+import { minimalPdf, multiPagePdf, PNG_1X1 } from "./test-fixtures.js";
 
 describe("extractText (seam 2)", () => {
 	it("extracts the embedded text of a generated PDF", async () => {
@@ -13,6 +13,28 @@ describe("extractText (seam 2)", () => {
 		expect(result.text).toContain("INV-2026-09");
 		expect(result.text).toContain("September 2026");
 		expect(result.mime).toBe("application/pdf");
+	});
+
+	it("merges the text of every PDF page in page order", async () => {
+		const result = await extractText({
+			path: "downloads/statement.pdf",
+			mime: "application/pdf",
+			bytes: multiPagePdf(["Page one opening", "Page two middle", "Page three closing"]),
+		});
+		expect(result.error).toBeUndefined();
+		const positions = ["opening", "middle", "closing"].map((word) => result.text.indexOf(word));
+		expect(positions.every((p) => p >= 0)).toBe(true);
+		expect(positions).toEqual([...positions].sort((a, b) => a - b));
+	});
+
+	it("leaves the caller's PDF bytes intact (the parser gets its own copy)", async () => {
+		const bytes = minimalPdf("Invoice INV-2026-09");
+		const before = Buffer.from(bytes).toString("base64");
+		await extractText({ path: "downloads/invoice.pdf", mime: "application/pdf", bytes });
+		expect(bytes.byteLength).toBeGreaterThan(0);
+		expect(Buffer.from(bytes).toString("base64")).toBe(before);
+		const again = await extractText({ path: "downloads/invoice.pdf", bytes });
+		expect(again.text).toContain("INV-2026-09");
 	});
 
 	it("infers the type from the extension when mime is missing", async () => {
