@@ -226,6 +226,20 @@ describe("LangChainModelFactory.forRole", () => {
 		expect(calls[0]?.fields).toMatchObject({ thinking: { budget_tokens: 16384 } });
 	});
 
+	it("does not pass a temperature to anthropic: API version 2026-10-21 rejects it on every model", async () => {
+		const { factory: f, calls } = factory({ ANTHROPIC_API_KEY: FAKE_KEY });
+		const withTemperature = SettingsSchema.parse({
+			models: { simulator: "anthropic:claude-haiku-5-5", judge: "anthropic:claude-haiku-5-5" },
+			temperature: { simulator: 0.3 },
+		});
+		await f.forRole("simulator", withTemperature);
+		await f.fromRef("anthropic:claude-haiku-5-5", { temperature: 0 });
+		expect(calls.map((call) => call.fields)).toEqual([
+			{ modelProvider: "anthropic", apiKey: FAKE_KEY },
+			{ modelProvider: "anthropic", apiKey: FAKE_KEY },
+		]);
+	});
+
 	it("explicit options override the settings for the role", async () => {
 		const { factory: f, calls } = factory({
 			OPENAI_API_KEY: FAKE_KEY,

@@ -271,6 +271,17 @@ describe("run (fake runner)", () => {
 		expect(await cli.run("run", SCENARIO, "--repeat", "lots")).toBe(1);
 		expect(cli.stderr()).toContain("--repeat");
 	});
+
+	it.each(["0", "-1", "-1E2", "2.5"])(
+		"rejects --repeat %s as a count before any run starts",
+		async (count) => {
+			// Commander reads "-1" / "-1E2" as the option's value (a negative number), not as a flag.
+			const cli = harness([]);
+			expect(await cli.run("run", SCENARIO, "--repeat", count)).toBe(1);
+			expect(cli.stderr()).toMatch(/--repeat.*must be a positive integer/);
+			expect(runner.started).toEqual([]);
+		},
+	);
 });
 
 describe("run (real runner over fakes)", () => {

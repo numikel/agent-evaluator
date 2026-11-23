@@ -1,4 +1,4 @@
-# agent-evaluator v0.1.2
+# agent-evaluator v0.1.3
 
 **Automated, UI-level evaluation of chatbots and AI agents: a persona-driven simulated user drives your bot through a real browser, every step is captured as evidence, and an LLM judge scores the conversation against your rubric.**
 
@@ -410,7 +410,7 @@ rubric unless you define a criterion with that id yourself.
 | `models.simulator` | `provider:model` | see template | Model that drives the browser as the persona (needs tool calling; vision mode needs image input) |
 | `models.judge` | `provider:model` | see template | Model that scores the run (image input recommended) |
 | `models.evidence_selector` | `provider:model` | the judge model | Model that picks key screenshots when `evidence_selection: llm`; inherits the judge's effort and temperature when omitted |
-| `temperature.<role>` | number 0–2 | — | Sent to the provider only when set |
+| `temperature.<role>` | number 0–2 | — | Sent to the provider only when set; never sent to `anthropic` (see Known limitations) |
 | `effort.<role>` | `none` \| `low` \| `medium` \| `high` \| `max` | — | Reasoning effort, mapped per provider (see [Model selection](#model-selection)) |
 | `browser.headless` | boolean | `true` | Default for every target |
 | `browser.slow_mo_ms` | integer ms | `0` | Playwright `slowMo`, useful with `--headed` |
@@ -552,8 +552,10 @@ The `run` command exits `1` when any run is FAILED or ERROR, so the job fails wi
   missing content. Use a `max_response_time_ms` or `no_console_errors` criterion to catch it.
 - **Effort is a no-op on some models.** xAI's `grok-*` models ignore the reasoning effort
   parameter; Mistral has no knob at all.
-- **Anthropic rejects `temperature ≠ 1` with extended thinking.** Set `effort` *or* a custom
-  temperature for Anthropic roles, not both; the tool does not enforce this.
+- **No temperature for Anthropic models.** Claude API version 2026-10-21, which the Anthropic SDK
+  uses, rejects `temperature`, `top_p` and `top_k` on every model, so `temperature.<role>` is not
+  sent for `anthropic:` roles and they sample at the model default (1.0). Other providers still
+  receive it.
 - **Login credentials can end up in the evidence.** When `auth.credentials_env` is used, the login
   pass types the values into the page: they can appear in turn-0 screenshots and in
   `steps/NNN/action.json`. Prefer `auth.storage_state` captured outside the tool, and treat `runs/`
