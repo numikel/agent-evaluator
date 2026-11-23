@@ -23,6 +23,15 @@ function rawStatus(port: number, target: string): Promise<number> {
 	});
 }
 
+/** Polls `condition` every few milliseconds; fails after `timeoutMs`. */
+async function until(condition: () => boolean, timeoutMs = 2_000): Promise<void> {
+	const deadline = Date.now() + timeoutMs;
+	while (!condition()) {
+		if (Date.now() > deadline) throw new Error("condition not met in time");
+		await new Promise((resolve) => setTimeout(resolve, 5));
+	}
+}
+
 describe("startServer", () => {
 	it("listens on a free port, serves the app and closes cleanly", async () => {
 		const app = createApp({
@@ -46,6 +55,73 @@ describe("startServer", () => {
 			await server.close();
 		}
 		await expect(fetch(`${server.url}/api/health`)).rejects.toThrow();
+	});
+
+	it("carries the UI round trip over a real socket: JSON bodies in, live SSE out, unsubscribe on disconnect", async () => {
+		// app.test.ts drives the routes in-process (`app.request`); this goes through the Node
+		// adapter's request body handling and response streaming, which `@hono/node-server` owns.
+		const deps = createFakeDeps();
+		const app = createApp({ ...deps, heartbeatMs: 60_000, logger: pino({ level: "silent" }) });
+		const server = await startServer({
+			app,
+			port: 0,
+			handleSignals: false,
+			logger: pino({ level: "silent" }),
+		});
+		const send = (method: string, path: string, body: unknown) =>
+			fetch(`${server.url}${path}`, {
+				method,
+				headers: { "content-type": "application/json" },
+				body: JSON.stringify(body),
+			});
+		try {
+			const scenario = {
+				name: "invoice",
+				persona: "alice",
+				target: "demo",
+				goal: "Get the invoice.",
+				intent: "Download the September invoice — as PDF, «please».",
+				success_criteria: "A PDF invoice was downloaded.",
+				max_turns: 3,
+			};
+			expect((await send("PUT", "/api/scenarios/invoice", scenario)).status).toBe(204);
+			expect(await deps.workspace.loadScenario("invoice")).toMatchObject(scenario);
+
+			const started = await send("POST", "/api/runs", { scenario: "invoice" });
+			expect(started.status).toBe(202);
+			const { runIds } = (await started.json()) as { runIds: string[] };
+			const runId = runIds[0] as string;
+			expect(deps.runner.started).toEqual([{ scenario: "invoice" }]);
+
+			const abort = new AbortController();
+			const events = await fetch(`${server.url}/api/runs/${runId}/events`, {
+				signal: abort.signal,
+			});
+			expect(events.headers.get("content-type")).toMatch(/^text\/event-stream/);
+			const reader = events.body?.getReader();
+			if (!reader) throw new Error("no SSE body");
+			await until(() => deps.runner.listenerCount(runId) === 1);
+			deps.runner.emit({
+				runId,
+				at: "2026-11-23T10:00:00.000Z",
+				type: "log",
+				level: "info",
+				message: "turn one ✓",
+			});
+			const decoder = new TextDecoder();
+			let text = "";
+			while (!text.includes("turn one ✓")) {
+				const { done, value } = await reader.read();
+				if (done) break;
+				text += decoder.decode(value, { stream: true });
+			}
+			expect(text).toMatch(/^data: \{.*"turn one ✓"/m);
+
+			abort.abort();
+			await until(() => deps.runner.listenerCount(runId) === 0);
+		} finally {
+			await server.close();
+		}
 	});
 
 	it("rejects a raw backslash in the request path instead of reading it as '/' (GHSA-jpvv-r467-5p4w)", async () => {

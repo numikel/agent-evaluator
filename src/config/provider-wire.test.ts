@@ -12,6 +12,7 @@ import { type AIMessageChunk, HumanMessage } from "@langchain/core/messages";
 import { createAgent, tool } from "langchain";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { z } from "zod";
+import { SettingsSchema } from "../schemas/index.js";
 import { LangChainModelFactory } from "./models.js";
 import { StaticSecretsProvider } from "./secrets.js";
 
@@ -56,7 +57,43 @@ function json(res: ServerResponse, status: number, body: unknown): void {
 	res.writeHead(status, { "content-type": "application/json" }).end(JSON.stringify(body));
 }
 
-function anthropic(body: Json, res: ServerResponse, args: Json): void {
+/** First Claude API version that rejects the sampling parameters (`temperature`, `top_p`, `top_k`). */
+const ANTHROPIC_NO_SAMPLING_VERSION = "2026-10-21";
+
+/**
+ * The checks the Claude API applies before it answers (platform.claude.com: API overview and the
+ * 2026-10-21 migration guide), so the contract fails the way production would: the key may come as
+ * `x-api-key` (legacy) or `Authorization: Bearer`, anything else is a 401; from API version
+ * 2026-10-21 on, a request that sends `temperature`, `top_p` or `top_k` is a 400 on every model.
+ */
+function anthropicRejection(
+	headers: IncomingHttpHeaders,
+	body: Json,
+): { status: number; type: string; message: string } | undefined {
+	if (headers["x-api-key"] !== KEY && headers.authorization !== `Bearer ${KEY}`) {
+		return { status: 401, type: "authentication_error", message: "invalid x-api-key" };
+	}
+	const version = String(headers["anthropic-version"] ?? "");
+	const sampling = ["temperature", "top_p", "top_k"].filter((name) => body[name] !== undefined);
+	if (version >= ANTHROPIC_NO_SAMPLING_VERSION && sampling.length > 0) {
+		const message = `${sampling.join(", ")}: not supported in API version ${version}`;
+		return { status: 400, type: "invalid_request_error", message };
+	}
+	return undefined;
+}
+
+function anthropic(
+	headers: IncomingHttpHeaders,
+	body: Json,
+	res: ServerResponse,
+	args: Json,
+): void {
+	const rejection = anthropicRejection(headers, body);
+	if (rejection) {
+		const { status, type, message } = rejection;
+		json(res, status, { type: "error", error: { type, message } });
+		return;
+	}
 	const tools = (body.tools as Array<{ name: string }> | undefined) ?? [];
 	const messages = (body.messages as Array<{ content: unknown }> | undefined) ?? [];
 	const last = messages.at(-1)?.content;
@@ -208,7 +245,7 @@ function startFakeProviders() {
 		const body = (text ? JSON.parse(text) : {}) as Json;
 		const path = req.url ?? "";
 		state.requests.push({ path, headers: req.headers, body });
-		if (path.endsWith("/messages")) return anthropic(body, res, state.args);
+		if (path.endsWith("/messages")) return anthropic(req.headers, body, res, state.args);
 		if (path.endsWith("/chat/completions")) return openai(body, res, state.args);
 		json(res, 404, { error: { message: `fake provider has no route ${req.method} ${path}` } });
 	});
@@ -231,7 +268,8 @@ const PROVIDERS = [
 		id: "anthropic",
 		env: "ANTHROPIC_API_KEY",
 		extra: (url: string): Json => ({ anthropicApiUrl: url }),
-		auth: (h: IncomingHttpHeaders) => h["x-api-key"],
+		// The Claude API takes the key in either header; which one the SDK uses is its own choice.
+		auth: (h: IncomingHttpHeaders) => h["x-api-key"] ?? h.authorization,
 	},
 	{
 		id: "openai",
@@ -279,6 +317,21 @@ describe.each(PROVIDERS)("$id provider over the wire", (provider) => {
 		const [request] = fake.state.requests;
 		expect(request?.body.stream).not.toBe(true);
 		expect(String(provider.auth(request?.headers ?? {}))).toContain(KEY);
+	});
+
+	it("still answers when the settings give the role a temperature", async () => {
+		fake.state.args = SEND_ARGS;
+		fake.state.requests.length = 0;
+		const ref = `${provider.id}:contract-model`;
+		const settings = SettingsSchema.parse({
+			models: { simulator: ref, judge: ref },
+			temperature: { judge: 0.2 },
+		});
+		const model = await new LangChainModelFactory({
+			secrets: new StaticSecretsProvider({ [provider.env]: KEY }),
+		}).forRole("judge", settings, { extra: provider.extra(fake.state.url) });
+		const reply = await model.invoke([new HumanMessage("ping")]);
+		expect(reply.text).toBe("pong");
 	});
 
 	it("assembles a tool call whose arguments are streamed in slices", async () => {
