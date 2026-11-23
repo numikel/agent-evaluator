@@ -46,6 +46,15 @@ const OUTPUT_LIMIT_PARAM: Record<string, string> = {
  */
 const NO_TEMPERATURE = new Set(["anthropic"]);
 
+/**
+ * Providers whose models are always called in streaming mode; `invoke` still returns one assembled
+ * message. The Anthropic SDK refuses a non-streaming request whose `max_tokens` could take longer
+ * than ten minutes to generate (about 21k tokens), and the output limit defaults to the profile's
+ * `maxOutputTokens` (64k-128k for current Claude models), so without streaming every call failed
+ * before it left the process.
+ */
+const ALWAYS_STREAM = new Set(["anthropic"]);
+
 const defaultInit: InitChatModelFn = async (model, fields) => {
 	const { initChatModel } = await import("langchain/chat_models/universal");
 	return initChatModel(model, fields);
@@ -139,6 +148,7 @@ export class LangChainModelFactory implements ModelFactory {
 		const fields: Record<string, unknown> = {
 			modelProvider: provider,
 			[provider === "ollama" ? "baseUrl" : "apiKey"]: credential,
+			...(ALWAYS_STREAM.has(provider) ? { streaming: true } : {}),
 			...params,
 		};
 		try {

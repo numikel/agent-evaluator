@@ -89,7 +89,11 @@ describe("LangChainModelFactory.fromRef", () => {
 		await f.fromRef("anthropic:claude-sonnet-5-5");
 		expect(calls).toHaveLength(1);
 		expect(calls[0]?.model).toBe("claude-sonnet-5-5");
-		expect(calls[0]?.fields).toEqual({ modelProvider: "anthropic", apiKey: FAKE_KEY });
+		expect(calls[0]?.fields).toEqual({
+			modelProvider: "anthropic",
+			apiKey: FAKE_KEY,
+			streaming: true,
+		});
 		expect(calls[0]?.fields).not.toHaveProperty("temperature");
 	});
 
@@ -126,6 +130,7 @@ describe("LangChainModelFactory.fromRef", () => {
 		expect(last?.fields).toEqual({
 			modelProvider: "anthropic",
 			apiKey: FAKE_KEY,
+			streaming: true,
 			maxTokens: 64_000,
 		});
 	});
@@ -198,6 +203,7 @@ describe("LangChainModelFactory.forRole", () => {
 		expect(calls[0]?.fields).toEqual({
 			modelProvider: "anthropic",
 			apiKey: FAKE_KEY,
+			streaming: true,
 			thinking: { type: "adaptive" },
 			outputConfig: { effort: "high" },
 		});
@@ -209,6 +215,7 @@ describe("LangChainModelFactory.forRole", () => {
 		expect(calls[0]?.fields).toEqual({
 			modelProvider: "anthropic",
 			apiKey: FAKE_KEY,
+			streaming: true,
 			thinking: { type: "enabled", budget_tokens: 16384 },
 		});
 	});
@@ -246,8 +253,8 @@ describe("LangChainModelFactory.forRole", () => {
 		await f.forRole("simulator", withTemperature);
 		await f.fromRef("anthropic:claude-haiku-5-5", { temperature: 0 });
 		expect(calls.map((call) => call.fields)).toEqual([
-			{ modelProvider: "anthropic", apiKey: FAKE_KEY },
-			{ modelProvider: "anthropic", apiKey: FAKE_KEY },
+			{ modelProvider: "anthropic", apiKey: FAKE_KEY, streaming: true },
+			{ modelProvider: "anthropic", apiKey: FAKE_KEY, streaming: true },
 		]);
 	});
 

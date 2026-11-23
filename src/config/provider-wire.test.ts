@@ -79,7 +79,52 @@ function anthropicRejection(
 		const message = `${sampling.join(", ")}: not supported in API version ${version}`;
 		return { status: 400, type: "invalid_request_error", message };
 	}
+	const thinking = body.thinking as { type?: string; budget_tokens?: number } | undefined;
+	const thinkingOn = thinking?.type === "enabled" || thinking?.type === "adaptive";
+	const forced = ["any", "tool"].includes(String((body.tool_choice as Json | undefined)?.type));
+	if (thinkingOn && forced) {
+		const message = "Thinking may not be enabled when tool_choice forces tool use.";
+		return { status: 400, type: "invalid_request_error", message };
+	}
+	const budget = thinking?.type === "enabled" ? Number(thinking.budget_tokens) : undefined;
+	if (budget !== undefined && !(Number(body.max_tokens) > budget)) {
+		const message = "`max_tokens` must be greater than `thinking.budget_tokens`";
+		return { status: 400, type: "invalid_request_error", message };
+	}
 	return undefined;
+}
+
+/** A response whose `stop_reason` is "refusal": the model declined and produced no content. */
+function anthropicRefusal(body: Json, res: ServerResponse): void {
+	const base = {
+		id: `msg_${++responseCount}`,
+		type: "message",
+		role: "assistant",
+		model: body.model,
+	};
+	const usage = { input_tokens: 10, output_tokens: 0 };
+	if (body.stream !== true) {
+		json(res, 200, { ...base, content: [], stop_reason: "refusal", stop_sequence: null, usage });
+		return;
+	}
+	sse(res, [
+		[
+			"message_start",
+			{
+				type: "message_start",
+				message: { ...base, content: [], stop_reason: null, stop_sequence: null, usage },
+			},
+		],
+		[
+			"message_delta",
+			{
+				type: "message_delta",
+				delta: { stop_reason: "refusal", stop_sequence: null },
+				usage: { output_tokens: 0 },
+			},
+		],
+		["message_stop", { type: "message_stop" }],
+	]);
 }
 
 function anthropic(
@@ -87,6 +132,7 @@ function anthropic(
 	body: Json,
 	res: ServerResponse,
 	args: Json,
+	refuse = false,
 ): void {
 	const rejection = anthropicRejection(headers, body);
 	if (rejection) {
@@ -94,12 +140,18 @@ function anthropic(
 		json(res, status, { type: "error", error: { type, message } });
 		return;
 	}
+	if (refuse) {
+		anthropicRefusal(body, res);
+		return;
+	}
 	const tools = (body.tools as Array<{ name: string }> | undefined) ?? [];
 	const messages = (body.messages as Array<{ content: unknown }> | undefined) ?? [];
 	const last = messages.at(-1)?.content;
 	const afterToolResult =
 		Array.isArray(last) && last.some((part) => (part as Json).type === "tool_result");
-	const wantsJson = body.output_format !== undefined || body.output_config !== undefined;
+	const wantsJson =
+		body.output_format !== undefined ||
+		(body.output_config as Json | undefined)?.format !== undefined;
 	const reply = decide(
 		tools.map((t) => t.name),
 		afterToolResult,
@@ -237,7 +289,7 @@ function openai(body: Json, res: ServerResponse, args: Json): void {
 }
 
 function startFakeProviders() {
-	const state = { args: SEND_ARGS as Json, requests: [] as Recorded[], url: "" };
+	const state = { args: SEND_ARGS as Json, requests: [] as Recorded[], url: "", refuse: false };
 	const server = createServer(async (req, res) => {
 		const chunks: Buffer[] = [];
 		for await (const chunk of req) chunks.push(chunk as Buffer);
@@ -245,7 +297,9 @@ function startFakeProviders() {
 		const body = (text ? JSON.parse(text) : {}) as Json;
 		const path = req.url ?? "";
 		state.requests.push({ path, headers: req.headers, body });
-		if (path.endsWith("/messages")) return anthropic(req.headers, body, res, state.args);
+		if (path.endsWith("/messages")) {
+			return anthropic(req.headers, body, res, state.args, state.refuse);
+		}
 		if (path.endsWith("/chat/completions")) return openai(body, res, state.args);
 		json(res, 404, { error: { message: `fake provider has no route ${req.method} ${path}` } });
 	});
@@ -272,6 +326,8 @@ const PROVIDERS = [
 		auth: (h: IncomingHttpHeaders) => h["x-api-key"] ?? h.authorization,
 		// API version 2026-10-21 (@anthropic-ai/sdk >= 1) removed the sampling parameters.
 		temperature: "dropped",
+		// Always streamed: the SDK will not wait for the profile's output limit without streaming.
+		invokeStreams: true,
 	},
 	{
 		id: "openai",
@@ -279,6 +335,7 @@ const PROVIDERS = [
 		extra: (url: string): Json => ({ configuration: { baseURL: `${url}/v1` } }),
 		auth: (h: IncomingHttpHeaders) => h.authorization,
 		temperature: "sent",
+		invokeStreams: false,
 	},
 	{
 		id: "openrouter",
@@ -286,6 +343,7 @@ const PROVIDERS = [
 		extra: (url: string): Json => ({ baseURL: `${url}/v1` }),
 		auth: (h: IncomingHttpHeaders) => h.authorization,
 		temperature: "sent",
+		invokeStreams: false,
 	},
 	{
 		id: "xai",
@@ -293,6 +351,7 @@ const PROVIDERS = [
 		extra: (url: string): Json => ({ baseURL: `${url}/v1` }),
 		auth: (h: IncomingHttpHeaders) => h.authorization,
 		temperature: "sent",
+		invokeStreams: false,
 	},
 ] as const;
 
@@ -320,7 +379,7 @@ describe.each(PROVIDERS)("$id provider over the wire", (provider) => {
 			expect.objectContaining({ name: "send_message", args: SEND_ARGS }),
 		]);
 		const [request] = fake.state.requests;
-		expect(request?.body.stream).not.toBe(true);
+		expect(request?.body.stream === true).toBe(provider.invokeStreams);
 		expect(String(provider.auth(request?.headers ?? {}))).toContain(KEY);
 	});
 
@@ -377,5 +436,87 @@ describe.each(PROVIDERS)("$id provider over the wire", (provider) => {
 		const output = await agent.invoke({ messages: [new HumanMessage("Begin the conversation.")] });
 		expect(sent).toEqual([SEND_ARGS.text]);
 		expect(output.messages.at(-1)?.text).toBe("done");
+	});
+});
+
+/**
+ * Real Claude model ids, so the factory applies what LangChain knows about them: the profile's
+ * output limit (64k-128k tokens, which the SDK refuses to wait for without streaming) and which
+ * models accept only adaptive thinking. The ids cover each family the provider package treats
+ * differently: budget thinking (4.5/4.6), adaptive-only (Opus 4.7/4.8, Claude 5) and always-on
+ * thinking (Fable).
+ */
+const CLAUDE_MODELS = [
+	"claude-haiku-4-5",
+	"claude-sonnet-4-6",
+	"claude-opus-4-7",
+	"claude-opus-4-8",
+	"claude-haiku-5-5",
+	"claude-sonnet-5-5",
+	"claude-opus-5-5",
+	"claude-fable-5-2",
+];
+const EFFORTS = [undefined, "none", "low", "max"] as const;
+
+describe.each(CLAUDE_MODELS)("anthropic:%s through the factory", (model) => {
+	const ref = `anthropic:${model}`;
+	const judge = (effort: (typeof EFFORTS)[number]) =>
+		new LangChainModelFactory({
+			secrets: new StaticSecretsProvider({ ANTHROPIC_API_KEY: KEY }),
+		}).forRole(
+			"judge",
+			SettingsSchema.parse({
+				models: { simulator: ref, judge: ref },
+				...(effort === undefined ? {} : { effort: { judge: effort } }),
+			}),
+			{ extra: { anthropicApiUrl: fake.state.url, maxRetries: 0 } },
+		);
+
+	it.each(EFFORTS)("effort %s: tool call, structured output and agent loop", async (effort) => {
+		fake.state.requests.length = 0;
+		fake.state.args = SEND_ARGS;
+		const chat = await judge(effort);
+		if (!chat.bindTools) throw new Error("cannot bind tools");
+		const bound = chat.bindTools([
+			{ name: "send_message", description: "Send a chat message", schema: sendMessageSchema },
+		]);
+		const reply = await bound.invoke([new HumanMessage("hi")]);
+		expect(reply.tool_calls).toEqual([
+			expect.objectContaining({ name: "send_message", args: SEND_ARGS }),
+		]);
+
+		const verdict = { score: 0.8, reason: "polite and complete" };
+		fake.state.args = verdict;
+		const schema = z.object({ score: z.number(), reason: z.string() });
+		expect(await (await judge(effort)).withStructuredOutput(schema).invoke("judge")).toEqual(
+			verdict,
+		);
+
+		fake.state.args = SEND_ARGS;
+		const sent: string[] = [];
+		const sendMessage = tool(
+			async ({ text }) => {
+				sent.push(text);
+				return "sent";
+			},
+			{ name: "send_message", description: "Send a chat message", schema: sendMessageSchema },
+		);
+		const agent = createAgent({ model: await judge(effort), tools: [sendMessage] });
+		const output = await agent.invoke({ messages: [new HumanMessage("Begin.")] });
+		expect(sent).toEqual([SEND_ARGS.text]);
+		expect(output.messages.at(-1)?.text).toBe("done");
+	});
+
+	it("a refused verdict fails with an error that says the model refused", async () => {
+		// The judge asks for structured output; the runner turns a thrown error into an ERROR run
+		// that carries the message, so the reason must be in it rather than a JSON parse failure.
+		fake.state.refuse = true;
+		try {
+			const schema = z.object({ score: z.number(), reason: z.string() });
+			const verdict = (await judge(undefined)).withStructuredOutput(schema).invoke("judge this");
+			await expect(verdict).rejects.toThrow(/refus/i);
+		} finally {
+			fake.state.refuse = false;
+		}
 	});
 });

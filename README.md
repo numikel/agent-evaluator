@@ -463,6 +463,8 @@ is configured, never the value ([ADR-0002](./docs/decisions/ADR-0002-secrets.md)
   support when the provider reports them.
 - **Output tokens** default to the model's own maximum (from LangChain's model profile) so answers
   are never truncated below what the model allows; conversation context is never trimmed.
+  Anthropic models are always called in streaming mode, because the Anthropic SDK refuses to wait
+  for such a long answer in a single response.
 - **Effort** is one provider-agnostic knob, mapped to each provider's own parameter:
 
 | Provider | `none` | `low` | `medium` | `high` | `max` | Parameter |
