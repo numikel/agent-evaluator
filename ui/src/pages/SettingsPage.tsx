@@ -47,8 +47,8 @@ const ROLE_INFO: Record<ModelRole, { label: string; hint: string; optional: bool
 
 const EFFORT_HINT =
 	"Provider-agnostic reasoning effort, mapped to each provider's own knob (OpenAI reasoning " +
-	"effort, Anthropic thinking budget, Gemini thinking config, Groq, Ollama think); providers " +
-	"without one ignore it.";
+	"effort, Anthropic thinking effort or budget, Gemini thinking config, Groq, Ollama think); " +
+	"providers without one ignore it.";
 
 type ModelsState =
 	| { status: "loading" }

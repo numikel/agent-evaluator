@@ -188,13 +188,24 @@ describe("LangChainModelFactory.forRole", () => {
 		effort: { simulator: "low", judge: "high" },
 	});
 
-	it("maps the judge's effort to anthropic thinking budget", async () => {
+	it("maps the judge's effort to adaptive thinking on a Claude 5 model", async () => {
 		const { factory: f, calls } = factory({
 			ANTHROPIC_API_KEY: FAKE_KEY,
 			OPENAI_API_KEY: FAKE_KEY,
 		});
 		await f.forRole("judge", settings);
 		expect(calls[0]?.model).toBe("claude-sonnet-5-5");
+		expect(calls[0]?.fields).toEqual({
+			modelProvider: "anthropic",
+			apiKey: FAKE_KEY,
+			thinking: { type: "adaptive" },
+			outputConfig: { effort: "high" },
+		});
+	});
+
+	it("maps the effort to a thinking budget on a model that still takes one", async () => {
+		const { factory: f, calls } = factory({ ANTHROPIC_API_KEY: FAKE_KEY });
+		await f.fromRef("anthropic:claude-haiku-5-5", { effort: "high" });
 		expect(calls[0]?.fields).toEqual({
 			modelProvider: "anthropic",
 			apiKey: FAKE_KEY,
@@ -223,7 +234,7 @@ describe("LangChainModelFactory.forRole", () => {
 		});
 		await f.forRole("evidence_selector", settings);
 		expect(calls[0]?.model).toBe("claude-sonnet-5-5");
-		expect(calls[0]?.fields).toMatchObject({ thinking: { budget_tokens: 16384 } });
+		expect(calls[0]?.fields).toMatchObject({ outputConfig: { effort: "high" } });
 	});
 
 	it("does not pass a temperature to anthropic: API version 2026-10-21 rejects it on every model", async () => {

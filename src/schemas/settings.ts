@@ -8,8 +8,8 @@ export const DEFAULT_MODEL_REF = "anthropic:claude-sonnet-5-5";
 
 /**
  * Provider-agnostic reasoning effort. The model factory maps it to each provider's own knob
- * (OpenAI `reasoningEffort`, Anthropic `thinking.budget_tokens`, Google `thinkingConfig`,
- * Groq `reasoningEffort`, Ollama `think`); providers without a knob ignore it.
+ * (OpenAI `reasoningEffort`, Anthropic `thinking.budget_tokens` or the adaptive `effort`, Google
+ * `thinkingConfig`, Groq `reasoningEffort`, Ollama `think`); providers without a knob ignore it.
  */
 export const EFFORT_LEVELS = ["none", "low", "medium", "high", "max"] as const;
 export const EffortSchema = z.enum(EFFORT_LEVELS);

@@ -469,12 +469,16 @@ is configured, never the value ([ADR-0002](./docs/decisions/ADR-0002-secrets.md)
 | --- | --- | --- | --- | --- | --- | --- |
 | openai, xai | omitted | `low` | `medium` | `high` | `high` | `reasoning: { effort }` |
 | anthropic | omitted | 2048 | 8192 | 16384 | 32000 | `thinking: { type: "enabled", budget_tokens }` |
+| anthropic: Opus 4.7+, Claude 5 | omitted | `low` | `medium` | `high` | `max` | `thinking: { type: "adaptive" }`, `outputConfig: { effort }` |
 | google-genai | 0 | 2048 | 8192 | 16384 | 24576 | `thinkingConfig: { thinkingBudget }` |
 | groq | `none` | `low` | `medium` | `high` | `high` | `reasoningEffort` |
 | ollama | `false` | `true` | `true` | `true` | `true` | `think` |
 | openrouter | omitted | `low` | `medium` | `high` | `high` | `modelKwargs: { reasoning: { effort } }` |
 | mistralai | ignored | ignored | ignored | ignored | ignored | — |
 
+Claude models that accept only adaptive thinking (`claude-opus-4-7`, `claude-opus-4-8` and the
+Claude 5 family such as `claude-sonnet-5-5`, `claude-opus-5-5` and `claude-fable-5-2`) reject a
+thinking budget, so they get the effort level instead; other Claude models keep the budget.
 An unset `effort` leaves the provider default. Models that do not support reasoning ignore the
 parameter or reject it, depending on the provider (see [Known limitations](#known-limitations)).
 

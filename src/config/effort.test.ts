@@ -27,6 +27,30 @@ describe("effortParams", () => {
 		});
 	});
 
+	it("anthropic adaptive-only models (Opus 4.7+, Claude 5): adaptive thinking with an effort level", () => {
+		for (const model of [
+			"claude-opus-4-7",
+			"claude-opus-4-8-20261001",
+			"claude-sonnet-5-5",
+			"claude-opus-5-5",
+			"claude-fable-5-2",
+			"claude-mythos-5-2",
+		]) {
+			expect(effortParams("anthropic", "none", model)).toEqual({});
+			for (const level of ["low", "medium", "high", "max"] as const) {
+				expect(effortParams("anthropic", level, model)).toEqual({
+					thinking: { type: "adaptive" },
+					outputConfig: { effort: level },
+				});
+			}
+		}
+		for (const model of ["claude-haiku-5-5", "claude-sonnet-4-6", "claude-haiku-4-5"]) {
+			expect(effortParams("anthropic", "high", model)).toEqual({
+				thinking: { type: "enabled", budget_tokens: 16384 },
+			});
+		}
+	});
+
 	it("google: thinkingConfig.thinkingBudget, 0 for none", () => {
 		expect(effortParams("google", "none")).toEqual({ thinkingConfig: { thinkingBudget: 0 } });
 		expect(effortParams("google", "low")).toEqual({ thinkingConfig: { thinkingBudget: 2048 } });

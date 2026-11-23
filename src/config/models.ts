@@ -124,7 +124,7 @@ export class LangChainModelFactory implements ModelFactory {
 		const credential = this.secrets.get(def.env);
 		if (credential === undefined) throw new ProviderNotConfiguredError(provider, def.env);
 
-		const params = this.baseParams(def, options);
+		const params = this.baseParams(def, model, options);
 		const limitKey = OUTPUT_LIMIT_PARAM[provider] ?? "maxTokens";
 		if (options.maxTokens !== undefined) params[limitKey] = options.maxTokens;
 
@@ -152,13 +152,14 @@ export class LangChainModelFactory implements ModelFactory {
 
 	private baseParams(
 		def: ProviderDefinition,
+		model: string,
 		options: CreateModelOptions,
 	): Record<string, unknown> {
 		const params: Record<string, unknown> = {};
 		if (options.temperature !== undefined && !NO_TEMPERATURE.has(def.id)) {
 			params.temperature = options.temperature;
 		}
-		Object.assign(params, effortParams(def.effortKnob, options.effort), options.extra);
+		Object.assign(params, effortParams(def.effortKnob, options.effort, model), options.extra);
 		return params;
 	}
 }
