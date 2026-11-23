@@ -1,5 +1,5 @@
 import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
-import type { Effort, ModelRole, Settings } from "../schemas/index.js";
+import { type Effort, MODEL_ROLES, type ModelRole, type Settings } from "../schemas/index.js";
 import { effortParams } from "./effort.js";
 import { createProviderRegistry } from "./providers.js";
 import {
@@ -45,6 +45,36 @@ const OUTPUT_LIMIT_PARAM: Record<string, string> = {
  * every model; without them the model samples with its defaults (temperature 1.0).
  */
 const NO_TEMPERATURE = new Set(["anthropic"]);
+
+/**
+ * Providers whose models are always called in streaming mode; `invoke` still returns one assembled
+ * message. The Anthropic SDK refuses a non-streaming request whose `max_tokens` could take longer
+ * than ten minutes to generate (about 21k tokens), and the output limit defaults to the profile's
+ * `maxOutputTokens` (64k-128k for current Claude models), so without streaming every call failed
+ * before it left the process.
+ */
+const ALWAYS_STREAM = new Set(["anthropic"]);
+
+/**
+ * One message per role whose configured temperature the factory will not send (see
+ * `NO_TEMPERATURE`), for the run log and `validate`. A role without a model of its own
+ * (`evidence_selector`) uses the judge's configuration and is covered by the judge's message.
+ */
+export function temperatureWarnings(settings: Settings): string[] {
+	const warnings: string[] = [];
+	for (const role of MODEL_ROLES) {
+		const temperature = settings.temperature?.[role];
+		const ref = settings.models[role];
+		if (temperature === undefined || ref === undefined) continue;
+		const provider = ref.slice(0, ref.indexOf(":"));
+		if (!NO_TEMPERATURE.has(provider)) continue;
+		warnings.push(
+			`temperature.${role} (${temperature}) is not sent to ${ref}: Claude API version ` +
+				"2026-10-21 does not accept a temperature, so the model samples at its default (1.0)",
+		);
+	}
+	return warnings;
+}
 
 const defaultInit: InitChatModelFn = async (model, fields) => {
 	const { initChatModel } = await import("langchain/chat_models/universal");
@@ -124,7 +154,7 @@ export class LangChainModelFactory implements ModelFactory {
 		const credential = this.secrets.get(def.env);
 		if (credential === undefined) throw new ProviderNotConfiguredError(provider, def.env);
 
-		const params = this.baseParams(def, options);
+		const params = this.baseParams(def, model, options);
 		const limitKey = OUTPUT_LIMIT_PARAM[provider] ?? "maxTokens";
 		if (options.maxTokens !== undefined) params[limitKey] = options.maxTokens;
 
@@ -139,6 +169,7 @@ export class LangChainModelFactory implements ModelFactory {
 		const fields: Record<string, unknown> = {
 			modelProvider: provider,
 			[provider === "ollama" ? "baseUrl" : "apiKey"]: credential,
+			...(ALWAYS_STREAM.has(provider) ? { streaming: true } : {}),
 			...params,
 		};
 		try {
@@ -152,13 +183,14 @@ export class LangChainModelFactory implements ModelFactory {
 
 	private baseParams(
 		def: ProviderDefinition,
+		model: string,
 		options: CreateModelOptions,
 	): Record<string, unknown> {
 		const params: Record<string, unknown> = {};
 		if (options.temperature !== undefined && !NO_TEMPERATURE.has(def.id)) {
 			params.temperature = options.temperature;
 		}
-		Object.assign(params, effortParams(def.effortKnob, options.effort), options.extra);
+		Object.assign(params, effortParams(def.effortKnob, options.effort, model), options.extra);
 		return params;
 	}
 }

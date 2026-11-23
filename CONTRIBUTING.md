@@ -43,6 +43,6 @@ If Chromium is installed elsewhere, point the tool at it with `AE_CHROMIUM_PATH=
 Releases are published by the `release.yml` workflow, started either by pushing a `vX.Y.Z` tag on
 `main` or manually from Actions → Release → Run workflow (the job then creates the tag). Before
 that: bump `version` in `package.json`, move the `changelog.d/` fragments into a new `CHANGELOG.md`
-section and run `npm pack --dry-run`. The workflow uses the `NPM_TOKEN` secret; with a 2FA-bypass
-token npm stages the publish and a maintainer approves it on npmjs.com. See the README section
-"Development → Releasing" for the full procedure and the Trusted Publishing alternative.
+section and run `npm pack --dry-run`. The workflow publishes through npm Trusted Publishing (no
+token secret) and then creates the GitHub Release from the version's `CHANGELOG.md` section. See
+the README section "Development → Releasing" for the full procedure.

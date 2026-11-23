@@ -1,4 +1,4 @@
-# agent-evaluator v0.1.3
+# agent-evaluator v0.1.4
 
 **Automated, UI-level evaluation of chatbots and AI agents: a persona-driven simulated user drives your bot through a real browser, every step is captured as evidence, and an LLM judge scores the conversation against your rubric.**
 
@@ -463,18 +463,24 @@ is configured, never the value ([ADR-0002](./docs/decisions/ADR-0002-secrets.md)
   support when the provider reports them.
 - **Output tokens** default to the model's own maximum (from LangChain's model profile) so answers
   are never truncated below what the model allows; conversation context is never trimmed.
+  Anthropic models are always called in streaming mode, because the Anthropic SDK refuses to wait
+  for such a long answer in a single response.
 - **Effort** is one provider-agnostic knob, mapped to each provider's own parameter:
 
 | Provider | `none` | `low` | `medium` | `high` | `max` | Parameter |
 | --- | --- | --- | --- | --- | --- | --- |
 | openai, xai | omitted | `low` | `medium` | `high` | `high` | `reasoning: { effort }` |
 | anthropic | omitted | 2048 | 8192 | 16384 | 32000 | `thinking: { type: "enabled", budget_tokens }` |
+| anthropic: Opus 4.7+, Claude 5 | omitted | `low` | `medium` | `high` | `max` | `thinking: { type: "adaptive" }`, `outputConfig: { effort }` |
 | google-genai | 0 | 2048 | 8192 | 16384 | 24576 | `thinkingConfig: { thinkingBudget }` |
 | groq | `none` | `low` | `medium` | `high` | `high` | `reasoningEffort` |
 | ollama | `false` | `true` | `true` | `true` | `true` | `think` |
 | openrouter | omitted | `low` | `medium` | `high` | `high` | `modelKwargs: { reasoning: { effort } }` |
 | mistralai | ignored | ignored | ignored | ignored | ignored | — |
 
+Claude models that accept only adaptive thinking (`claude-opus-4-7`, `claude-opus-4-8` and the
+Claude 5 family such as `claude-sonnet-5-5`, `claude-opus-5-5` and `claude-fable-5-2`) reject a
+thinking budget, so they get the effort level instead; other Claude models keep the budget.
 An unset `effort` leaves the provider default. Models that do not support reasoning ignore the
 parameter or reject it, depending on the provider (see [Known limitations](#known-limitations)).
 
@@ -554,8 +560,8 @@ The `run` command exits `1` when any run is FAILED or ERROR, so the job fails wi
   parameter; Mistral has no knob at all.
 - **No temperature for Anthropic models.** Claude API version 2026-10-21, which the Anthropic SDK
   uses, rejects `temperature`, `top_p` and `top_k` on every model, so `temperature.<role>` is not
-  sent for `anthropic:` roles and they sample at the model default (1.0). Other providers still
-  receive it.
+  sent for `anthropic:` roles and they sample at the model default (1.0); `validate` and the run's
+  event log (a `warn` line at the start) say so. Other providers still receive it.
 - **Login credentials can end up in the evidence.** When `auth.credentials_env` is used, the login
   pass types the values into the page: they can appear in turn-0 screenshots and in
   `steps/NNN/action.json`. Prefer `auth.storage_state` captured outside the tool, and treat `runs/`
@@ -651,19 +657,16 @@ Development follows TDD (red → green → refactor) with one Conventional Commi
    - push the tag: `git tag vx.y.z && git push origin vx.y.z`, or
    - Actions → Release → **Run workflow** on `main` with the version as input (works from the GitHub
      mobile app); the job creates the `vx.y.z` tag itself.
-   The job checks that the version matches `package.json`, builds, and runs
-   `npm publish --provenance --access public`.
-4. Credentials: the repository secret `NPM_TOKEN` must hold an npm granular access token with
-   *Read and write (publish and stage)* permission and *Bypass two-factor authentication* enabled.
-   With such a token npm **stages** the publish: the job ends green, but the version goes live only
-   after a maintainer approves it on npmjs.com (package → *Staged Packages* → Approve, with a 2FA
-   code) or with `npm stage approve <stage-id>` (npm ≥ 11.15). Without the secret the job fails at
-   `npm publish` and nothing is published.
-5. Recommended once the package exists: configure
-   [Trusted Publishing](https://docs.npmjs.com/trusted-publishers/) on npmjs.com for this repository
-   and workflow (`numikel/agent-evaluator`, `release.yml`). Then the `NODE_AUTH_TOKEN` line can be
-   removed from the workflow, the secret deleted, and releases publish directly without the staging
-   step. The first OIDC publish must happen within two days of configuring it.
+   The job checks that the version matches `package.json` and has a `CHANGELOG.md` section, builds,
+   runs `npm publish --provenance --access public`, and then creates the GitHub Release with that
+   section as its notes (`github-release.yml`, which can also be run by hand for an existing tag).
+4. Credentials: publishing uses [Trusted Publishing](https://docs.npmjs.com/trusted-publishers/).
+   On npmjs.com the package's trusted publisher is GitHub Actions with repository
+   `numikel/agent-evaluator` and workflow `release.yml`; npm then accepts the job's OIDC token, so
+   there is no npm token secret and the version goes live without a staging approval. The job needs
+   npm ≥ 11.5.1 (it upgrades npm when the runner's Node.js ships an older one). Without the trusted
+   publisher the job fails at `npm publish` and nothing is published (the tag may already exist;
+   running the workflow again publishes from it).
 
 ## Changelog
 

@@ -20,6 +20,14 @@
 			"@/*": ["./src/*"]
 		}
 	},
-	"include": ["src", "fixtures", "e2e", "docs/screenshots", "vitest.config.ts", "tsdown.config.ts"],
+	"include": [
+		"src",
+		"fixtures",
+		"e2e",
+		"docs/screenshots",
+		"scripts",
+		"vitest.config.ts",
+		"tsdown.config.ts"
+	],
 	"exclude": ["node_modules", "dist", "ui"]
 }

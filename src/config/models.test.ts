@@ -3,7 +3,12 @@ import type { ModelProfile } from "@langchain/core/language_models/profile";
 import { describe, expect, it } from "vitest";
 import { SettingsSchema } from "../schemas/index.js";
 import { ScriptedChatModel } from "../testing/scripted-chat-model.js";
-import { type InitChatModelFn, LangChainModelFactory, type OpenRouterCtor } from "./models.js";
+import {
+	type InitChatModelFn,
+	LangChainModelFactory,
+	type OpenRouterCtor,
+	temperatureWarnings,
+} from "./models.js";
 import { StaticSecretsProvider } from "./secrets.js";
 import { ProviderNotConfiguredError } from "./types.js";
 
@@ -89,7 +94,11 @@ describe("LangChainModelFactory.fromRef", () => {
 		await f.fromRef("anthropic:claude-sonnet-5-5");
 		expect(calls).toHaveLength(1);
 		expect(calls[0]?.model).toBe("claude-sonnet-5-5");
-		expect(calls[0]?.fields).toEqual({ modelProvider: "anthropic", apiKey: FAKE_KEY });
+		expect(calls[0]?.fields).toEqual({
+			modelProvider: "anthropic",
+			apiKey: FAKE_KEY,
+			streaming: true,
+		});
 		expect(calls[0]?.fields).not.toHaveProperty("temperature");
 	});
 
@@ -126,6 +135,7 @@ describe("LangChainModelFactory.fromRef", () => {
 		expect(last?.fields).toEqual({
 			modelProvider: "anthropic",
 			apiKey: FAKE_KEY,
+			streaming: true,
 			maxTokens: 64_000,
 		});
 	});
@@ -188,7 +198,7 @@ describe("LangChainModelFactory.forRole", () => {
 		effort: { simulator: "low", judge: "high" },
 	});
 
-	it("maps the judge's effort to anthropic thinking budget", async () => {
+	it("maps the judge's effort to adaptive thinking on a Claude 5 model", async () => {
 		const { factory: f, calls } = factory({
 			ANTHROPIC_API_KEY: FAKE_KEY,
 			OPENAI_API_KEY: FAKE_KEY,
@@ -198,6 +208,19 @@ describe("LangChainModelFactory.forRole", () => {
 		expect(calls[0]?.fields).toEqual({
 			modelProvider: "anthropic",
 			apiKey: FAKE_KEY,
+			streaming: true,
+			thinking: { type: "adaptive" },
+			outputConfig: { effort: "high" },
+		});
+	});
+
+	it("maps the effort to a thinking budget on a model that still takes one", async () => {
+		const { factory: f, calls } = factory({ ANTHROPIC_API_KEY: FAKE_KEY });
+		await f.fromRef("anthropic:claude-haiku-5-5", { effort: "high" });
+		expect(calls[0]?.fields).toEqual({
+			modelProvider: "anthropic",
+			apiKey: FAKE_KEY,
+			streaming: true,
 			thinking: { type: "enabled", budget_tokens: 16384 },
 		});
 	});
@@ -223,7 +246,7 @@ describe("LangChainModelFactory.forRole", () => {
 		});
 		await f.forRole("evidence_selector", settings);
 		expect(calls[0]?.model).toBe("claude-sonnet-5-5");
-		expect(calls[0]?.fields).toMatchObject({ thinking: { budget_tokens: 16384 } });
+		expect(calls[0]?.fields).toMatchObject({ outputConfig: { effort: "high" } });
 	});
 
 	it("does not pass a temperature to anthropic: API version 2026-10-21 rejects it on every model", async () => {
@@ -235,8 +258,8 @@ describe("LangChainModelFactory.forRole", () => {
 		await f.forRole("simulator", withTemperature);
 		await f.fromRef("anthropic:claude-haiku-5-5", { temperature: 0 });
 		expect(calls.map((call) => call.fields)).toEqual([
-			{ modelProvider: "anthropic", apiKey: FAKE_KEY },
-			{ modelProvider: "anthropic", apiKey: FAKE_KEY },
+			{ modelProvider: "anthropic", apiKey: FAKE_KEY, streaming: true },
+			{ modelProvider: "anthropic", apiKey: FAKE_KEY, streaming: true },
 		]);
 	});
 
@@ -247,5 +270,34 @@ describe("LangChainModelFactory.forRole", () => {
 		});
 		await f.forRole("simulator", settings, { effort: "none", temperature: 0 });
 		expect(calls[0]?.fields).toEqual({ modelProvider: "openai", apiKey: FAKE_KEY, temperature: 0 });
+	});
+});
+
+describe("temperatureWarnings", () => {
+	it("names each role whose temperature an anthropic model will not receive", () => {
+		const settings = SettingsSchema.parse({
+			models: {
+				simulator: "anthropic:claude-sonnet-5-5",
+				judge: "openai:gpt-5",
+				evidence_selector: "anthropic:claude-haiku-5-5",
+			},
+			temperature: { simulator: 0.7, judge: 0, evidence_selector: 0.2 },
+		});
+		const warnings = temperatureWarnings(settings);
+		expect(warnings).toHaveLength(2);
+		expect(warnings[0]).toMatch(
+			/^temperature\.simulator \(0\.7\) is not sent to anthropic:claude-sonnet-5-5/,
+		);
+		expect(warnings[1]).toMatch(/^temperature\.evidence_selector \(0\.2\) is not sent/);
+		for (const warning of warnings) expect(warning).toContain("2026-10-21");
+	});
+
+	it("is empty without a temperature or without an anthropic role", () => {
+		expect(temperatureWarnings(SettingsSchema.parse({}))).toEqual([]);
+		const openai = SettingsSchema.parse({
+			models: { simulator: "openai:gpt-5", judge: "openai:gpt-5" },
+			temperature: { simulator: 0.7, judge: 0 },
+		});
+		expect(temperatureWarnings(openai)).toEqual([]);
 	});
 });

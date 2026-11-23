@@ -1,15 +1,14 @@
 name: Release
 
-# Publishes the package to npm. Two ways to start it:
+# Publishes the package to npm and creates the GitHub Release. Two ways to start it:
 #   1. Push a version tag: `git tag v0.1.0 && git push origin v0.1.0`.
 #   2. Actions → Release → "Run workflow" on `main` with the version (e.g. 0.1.0); the job creates
 #      the `vX.Y.Z` tag itself. Works from the GitHub mobile app.
-# Either way the version must equal `package.json`. Requires the `NPM_TOKEN` repository secret (an
-# npm granular token with publish rights and 2FA bypass), added under Settings → Secrets and
-# variables → Actions. `--provenance` needs `id-token: write`; creating the tag needs `contents: write`.
-# With such a token npm *stages* the publish: the job ends green, but the version goes live only after a
-# maintainer approves it (npmjs.com → package → Staged Packages, or `npm stage approve <id>`).
-# Configuring Trusted Publishing for this workflow on npmjs.com removes both the token and that step.
+# Either way the version must equal `package.json`. Publishing uses npm Trusted Publishing: npmjs.com
+# trusts this workflow (repository numikel/agent-evaluator, workflow release.yml) through an OIDC
+# token, so there is no npm token secret and no staged publish to approve. `id-token: write` lets the
+# job request that token (it also signs the provenance statement); `contents: write` creates the tag
+# and the GitHub Release (github-release.yml, with the version's CHANGELOG.md section as notes).
 
 on:
   push:
@@ -29,6 +28,8 @@ jobs:
   publish:
     name: Publish to npm
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -36,6 +37,11 @@ jobs:
           node-version: 24
           registry-url: https://registry.npmjs.org
           cache: npm
+      - name: Check that npm supports Trusted Publishing (>= 11.5.1)
+        run: |
+          npm --version
+          node -e 'const [a, b, c] = process.argv[1].split(".").map(Number); process.exit(a > 11 || (a === 11 && (b > 5 || (b === 5 && c >= 1))) ? 0 : 1)' "$(npm --version)" \
+            || npm install -g npm@^11.5.1
       - run: npm ci
       - run: npm run build
       - name: Check that the requested version matches package.json
@@ -50,6 +56,8 @@ jobs:
             exit 1
           fi
           echo "version=${version}" >> "$GITHUB_OUTPUT"
+      - name: Check that CHANGELOG.md has a section for the version
+        run: node scripts/release-notes.mjs "${{ steps.version.outputs.version }}" > /dev/null
       - name: Create the version tag (manual runs only)
         if: github.event_name == 'workflow_dispatch'
         env:
@@ -64,5 +72,12 @@ jobs:
             git push origin "v${VERSION}"
           fi
       - run: npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  github-release:
+    name: GitHub Release
+    needs: publish
+    permissions:
+      contents: write
+    uses: ./.github/workflows/github-release.yml
+    with:
+      version: ${{ needs.publish.outputs.version }}

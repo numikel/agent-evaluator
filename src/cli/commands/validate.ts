@@ -1,4 +1,5 @@
 import type { Command } from "commander";
+import { temperatureWarnings } from "../../config/models.js";
 import { type ResourceKind, ValidationError, type ValidationIssue } from "../../schemas/index.js";
 import { WORKSPACE_FILES } from "../../workspace/index.js";
 import type { Workspace } from "../../workspace/types.js";
@@ -8,7 +9,8 @@ import { CHECK, CliExitError, CROSS, createPalette, plural } from "../output.js"
 
 const NAMED_KINDS = ["persona", "scenario", "rubric", "target"] as const;
 
-type FileResult = { path: string; issues: ValidationIssue[] };
+/** `warnings` are printed but do not fail the command. */
+type FileResult = { path: string; issues: ValidationIssue[]; warnings?: string[] };
 
 const errorMessage = (error: unknown): string =>
 	error instanceof Error ? error.message : String(error);
@@ -53,7 +55,11 @@ export async function validateWorkspace(workspace: Workspace): Promise<FileResul
 	for (const kind of ["evaluator", "settings"] as const) {
 		const path = WORKSPACE_FILES[kind];
 		try {
-			results.push(await checkFile(workspace, kind, undefined, path));
+			const result = await checkFile(workspace, kind, undefined, path);
+			if (kind === "settings" && result.issues.length === 0) {
+				result.warnings = temperatureWarnings(await workspace.loadSettings());
+			}
+			results.push(result);
 		} catch (error) {
 			if (!isNotFound(error)) throw error;
 			if (kind === "evaluator") {
@@ -100,7 +106,12 @@ export function registerValidate(program: Command, deps: CliDeps): void {
 
 			deps.stdout(`Validating workspace ${root}\n`);
 			let issueCount = 0;
-			for (const { path, issues } of results) {
+			let warningCount = 0;
+			for (const { path, issues, warnings = [] } of results) {
+				warningCount += warnings.length;
+				for (const warning of warnings) {
+					deps.stdout(`${palette.yellow("!")} ${path}: ${warning}\n`);
+				}
 				if (issues.length === 0) {
 					deps.stdout(`${palette.green(CHECK)} ${path}\n`);
 					continue;
@@ -112,9 +123,10 @@ export function registerValidate(program: Command, deps: CliDeps): void {
 				}
 			}
 			const summary =
-				issueCount === 0
+				(issueCount === 0
 					? `${plural(results.length, "file")} checked, no issues`
-					: `${plural(results.length, "file")} checked, ${plural(issueCount, "issue")}`;
+					: `${plural(results.length, "file")} checked, ${plural(issueCount, "issue")}`) +
+				(warningCount === 0 ? "" : `, ${plural(warningCount, "warning")}`);
 			deps.stdout(`\n${summary}\n`);
 			if (issueCount > 0) throw new CliExitError(`${plural(issueCount, "issue")} found`);
 		});

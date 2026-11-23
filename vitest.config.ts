@@ -24,7 +24,12 @@ export default defineConfig({
 				test: {
 					name: "unit",
 					environment: "node",
-					include: ["src/**/*.test.ts", "fixtures/**/*.test.ts", "templates/**/*.test.ts"],
+					include: [
+						"src/**/*.test.ts",
+						"fixtures/**/*.test.ts",
+						"templates/**/*.test.ts",
+						"scripts/**/*.test.ts",
+					],
 				},
 			},
 			{
