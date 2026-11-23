@@ -48,4 +48,4 @@ export { openRunStore, openWorkspace } from "./workspace/index.js";
 export type * from "./workspace/types.js";
 export { WORKSPACE_DIRS, WORKSPACE_FILES } from "./workspace/types.js";
 
-export const VERSION = "0.1.3";
+export const VERSION = "0.1.4";
