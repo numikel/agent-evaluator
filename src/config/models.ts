@@ -1,5 +1,5 @@
 import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
-import type { Effort, ModelRole, Settings } from "../schemas/index.js";
+import { type Effort, MODEL_ROLES, type ModelRole, type Settings } from "../schemas/index.js";
 import { effortParams } from "./effort.js";
 import { createProviderRegistry } from "./providers.js";
 import {
@@ -54,6 +54,27 @@ const NO_TEMPERATURE = new Set(["anthropic"]);
  * before it left the process.
  */
 const ALWAYS_STREAM = new Set(["anthropic"]);
+
+/**
+ * One message per role whose configured temperature the factory will not send (see
+ * `NO_TEMPERATURE`), for the run log and `validate`. A role without a model of its own
+ * (`evidence_selector`) uses the judge's configuration and is covered by the judge's message.
+ */
+export function temperatureWarnings(settings: Settings): string[] {
+	const warnings: string[] = [];
+	for (const role of MODEL_ROLES) {
+		const temperature = settings.temperature?.[role];
+		const ref = settings.models[role];
+		if (temperature === undefined || ref === undefined) continue;
+		const provider = ref.slice(0, ref.indexOf(":"));
+		if (!NO_TEMPERATURE.has(provider)) continue;
+		warnings.push(
+			`temperature.${role} (${temperature}) is not sent to ${ref}: Claude API version ` +
+				"2026-10-21 does not accept a temperature, so the model samples at its default (1.0)",
+		);
+	}
+	return warnings;
+}
 
 const defaultInit: InitChatModelFn = async (model, fields) => {
 	const { initChatModel } = await import("langchain/chat_models/universal");

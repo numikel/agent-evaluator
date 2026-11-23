@@ -225,7 +225,7 @@ function RolePicker({
 					max={2}
 					step={0.1}
 					placeholder="provider default"
-					hint="Optional, 0–2. Some providers reject a custom temperature when reasoning is on."
+					hint="Optional, 0–2. Not sent to Anthropic models, whose API no longer accepts it."
 					error={issueFor(issues, `temperature.${role}`)}
 					disabled={unset}
 					onChange={(n) => onChange({ ...draft, temperature: n === undefined ? "" : String(n) })}

@@ -33,6 +33,20 @@ describe("validate", () => {
 		expect(stdout).toMatch(/6 files checked, no issues/);
 	});
 
+	it("warns about a temperature an anthropic model will not receive, without failing", async () => {
+		const settingsPath = join(ws.root, "agent-evaluator.yaml");
+		await writeFile(
+			settingsPath,
+			`${await readFile(settingsPath, "utf8")}\ntemperature:\n  simulator: 0.7\n`,
+		);
+		const cli = createCliHarness({ cwd: ws.root });
+		expect(await cli.run("validate")).toBe(0);
+		expect(cli.stdout()).toMatch(
+			/! agent-evaluator\.yaml: temperature\.simulator \(0\.7\) is not sent to anthropic:/,
+		);
+		expect(cli.stdout()).toMatch(/6 files checked, no issues, 1 warning/);
+	});
+
 	it("seam 2: exits 1 and lists `scenarios/bad.yaml: max_turns …` for an invalid file", async () => {
 		const template = await readFile(
 			join(ws.root, "scenarios", "invoice-export-september.yaml"),

@@ -15,6 +15,7 @@ export {
 	LangChainModelFactory,
 	type LangChainModelFactoryOptions,
 	type OpenRouterCtor,
+	temperatureWarnings,
 } from "./models.js";
 export {
 	ANTHROPIC_API_VERSION,

@@ -560,8 +560,8 @@ The `run` command exits `1` when any run is FAILED or ERROR, so the job fails wi
   parameter; Mistral has no knob at all.
 - **No temperature for Anthropic models.** Claude API version 2026-10-21, which the Anthropic SDK
   uses, rejects `temperature`, `top_p` and `top_k` on every model, so `temperature.<role>` is not
-  sent for `anthropic:` roles and they sample at the model default (1.0). Other providers still
-  receive it.
+  sent for `anthropic:` roles and they sample at the model default (1.0); `validate` and the run's
+  event log (a `warn` line at the start) say so. Other providers still receive it.
 - **Login credentials can end up in the evidence.** When `auth.credentials_env` is used, the login
   pass types the values into the page: they can appear in turn-0 screenshots and in
   `steps/NNN/action.json`. Prefer `auth.storage_state` captured outside the tool, and treat `runs/`

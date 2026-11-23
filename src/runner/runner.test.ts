@@ -561,6 +561,44 @@ describe("createRunner", () => {
 		expect(factory.sessions).toHaveLength(0);
 	});
 
+	it("warns in the event log when a role's temperature will not reach its anthropic model", async () => {
+		await editResource(
+			ws.workspace,
+			"settings",
+			undefined,
+			(raw) => `${raw}\ntemperature:\n  judge: 0.2\n`,
+		);
+		const models = new ScriptedModelFactory({
+			simulator: () =>
+				new ScriptedChatModel({ script: [sendMessage("hi"), endConversation("goal_reached")] }),
+			judge: () => judgeModel(true),
+		});
+		runner = createRunner({
+			workspace: ws.workspace,
+			runStore: ws.runStore,
+			browserFactory: new FakeSessionFactory({
+				make: () => new FakeBrowserSession({ replies: [BOT_REPLY] }),
+			}),
+			modelFactory: models,
+		});
+		const { runIds } = await runner.start({ scenario: SCENARIO });
+		const runId = runIds[0] as string;
+		await runner.wait(runId);
+		const events = (await readFile(join(ws.runStore.dir(runId), "events.jsonl"), "utf8"))
+			.trim()
+			.split("\n")
+			.map((line) => JSON.parse(line) as RunEvent);
+		const warnings = events.filter((e) => e.type === "log" && e.level === "warn");
+		expect(warnings).toEqual([
+			expect.objectContaining({
+				message: expect.stringMatching(/^temperature\.judge \(0\.2\) is not sent to anthropic:/),
+			}),
+		]);
+		expect(events.findIndex((e) => e.type === "log")).toBeLessThan(
+			events.findIndex((e) => e.type === "turn"),
+		);
+	});
+
 	it("maps simulator reason blocked to judging (status from the verdict)", async () => {
 		const factory = new FakeSessionFactory({
 			make: () => new FakeBrowserSession({ replies: [BOT_REPLY] }),

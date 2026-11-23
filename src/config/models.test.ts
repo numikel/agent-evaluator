@@ -3,7 +3,12 @@ import type { ModelProfile } from "@langchain/core/language_models/profile";
 import { describe, expect, it } from "vitest";
 import { SettingsSchema } from "../schemas/index.js";
 import { ScriptedChatModel } from "../testing/scripted-chat-model.js";
-import { type InitChatModelFn, LangChainModelFactory, type OpenRouterCtor } from "./models.js";
+import {
+	type InitChatModelFn,
+	LangChainModelFactory,
+	type OpenRouterCtor,
+	temperatureWarnings,
+} from "./models.js";
 import { StaticSecretsProvider } from "./secrets.js";
 import { ProviderNotConfiguredError } from "./types.js";
 
@@ -265,5 +270,34 @@ describe("LangChainModelFactory.forRole", () => {
 		});
 		await f.forRole("simulator", settings, { effort: "none", temperature: 0 });
 		expect(calls[0]?.fields).toEqual({ modelProvider: "openai", apiKey: FAKE_KEY, temperature: 0 });
+	});
+});
+
+describe("temperatureWarnings", () => {
+	it("names each role whose temperature an anthropic model will not receive", () => {
+		const settings = SettingsSchema.parse({
+			models: {
+				simulator: "anthropic:claude-sonnet-5-5",
+				judge: "openai:gpt-5",
+				evidence_selector: "anthropic:claude-haiku-5-5",
+			},
+			temperature: { simulator: 0.7, judge: 0, evidence_selector: 0.2 },
+		});
+		const warnings = temperatureWarnings(settings);
+		expect(warnings).toHaveLength(2);
+		expect(warnings[0]).toMatch(
+			/^temperature\.simulator \(0\.7\) is not sent to anthropic:claude-sonnet-5-5/,
+		);
+		expect(warnings[1]).toMatch(/^temperature\.evidence_selector \(0\.2\) is not sent/);
+		for (const warning of warnings) expect(warning).toContain("2026-10-21");
+	});
+
+	it("is empty without a temperature or without an anthropic role", () => {
+		expect(temperatureWarnings(SettingsSchema.parse({}))).toEqual([]);
+		const openai = SettingsSchema.parse({
+			models: { simulator: "openai:gpt-5", judge: "openai:gpt-5" },
+			temperature: { simulator: 0.7, judge: 0 },
+		});
+		expect(temperatureWarnings(openai)).toEqual([]);
 	});
 });

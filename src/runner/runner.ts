@@ -6,6 +6,7 @@
 import { randomBytes } from "node:crypto";
 import { access } from "node:fs/promises";
 import type { BrowserSessionFactory } from "../browser/types.js";
+import { temperatureWarnings } from "../config/models.js";
 import type { ModelFactory } from "../config/types.js";
 import {
 	type RunEvent,
@@ -314,6 +315,10 @@ class FsRunner implements RunnerHandle {
 		const running = await this.deps.runStore.updateRecord(id, { status: "RUNNING" });
 		await emit({ type: "run_started", run: running });
 		await emit({ type: "status", status: "RUNNING" });
+		for (const message of temperatureWarnings(job.resolved.settings)) {
+			await emit({ type: "log", level: "warn", message });
+			this.logger.warn(`[${id}] ${message}`);
+		}
 		this.logger.info(
 			`[${id}] started (${job.record.scenario} ${job.record.repeat_index}/${job.record.repeat_total})`,
 		);
