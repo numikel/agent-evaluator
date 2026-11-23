@@ -38,6 +38,14 @@ const OUTPUT_LIMIT_PARAM: Record<string, string> = {
 	ollama: "numPredict",
 };
 
+/**
+ * Providers whose API no longer accepts sampling parameters, so a configured `temperature` is not
+ * forwarded. Claude API version 2026-10-21 (sent by `@anthropic-ai/sdk` >= 1, which
+ * `@langchain/anthropic` >= 1.6.2 uses) answers `temperature`, `top_p` and `top_k` with a 400 on
+ * every model; without them the model samples with its defaults (temperature 1.0).
+ */
+const NO_TEMPERATURE = new Set(["anthropic"]);
+
 const defaultInit: InitChatModelFn = async (model, fields) => {
 	const { initChatModel } = await import("langchain/chat_models/universal");
 	return initChatModel(model, fields);
@@ -147,7 +155,9 @@ export class LangChainModelFactory implements ModelFactory {
 		options: CreateModelOptions,
 	): Record<string, unknown> {
 		const params: Record<string, unknown> = {};
-		if (options.temperature !== undefined) params.temperature = options.temperature;
+		if (options.temperature !== undefined && !NO_TEMPERATURE.has(def.id)) {
+			params.temperature = options.temperature;
+		}
 		Object.assign(params, effortParams(def.effortKnob, options.effort), options.extra);
 		return params;
 	}

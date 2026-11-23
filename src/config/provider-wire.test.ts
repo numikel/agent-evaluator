@@ -270,24 +270,29 @@ const PROVIDERS = [
 		extra: (url: string): Json => ({ anthropicApiUrl: url }),
 		// The Claude API takes the key in either header; which one the SDK uses is its own choice.
 		auth: (h: IncomingHttpHeaders) => h["x-api-key"] ?? h.authorization,
+		// API version 2026-10-21 (@anthropic-ai/sdk >= 1) removed the sampling parameters.
+		temperature: "dropped",
 	},
 	{
 		id: "openai",
 		env: "OPENAI_API_KEY",
 		extra: (url: string): Json => ({ configuration: { baseURL: `${url}/v1` } }),
 		auth: (h: IncomingHttpHeaders) => h.authorization,
+		temperature: "sent",
 	},
 	{
 		id: "openrouter",
 		env: "OPENROUTER_API_KEY",
 		extra: (url: string): Json => ({ baseURL: `${url}/v1` }),
 		auth: (h: IncomingHttpHeaders) => h.authorization,
+		temperature: "sent",
 	},
 	{
 		id: "xai",
 		env: "XAI_API_KEY",
 		extra: (url: string): Json => ({ baseURL: `${url}/v1` }),
 		auth: (h: IncomingHttpHeaders) => h.authorization,
+		temperature: "sent",
 	},
 ] as const;
 
@@ -332,6 +337,8 @@ describe.each(PROVIDERS)("$id provider over the wire", (provider) => {
 		}).forRole("judge", settings, { extra: provider.extra(fake.state.url) });
 		const reply = await model.invoke([new HumanMessage("ping")]);
 		expect(reply.text).toBe("pong");
+		const sent = fake.state.requests[0]?.body.temperature;
+		expect(sent).toBe(provider.temperature === "sent" ? 0.2 : undefined);
 	});
 
 	it("assembles a tool call whose arguments are streamed in slices", async () => {

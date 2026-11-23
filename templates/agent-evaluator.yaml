@@ -7,7 +7,8 @@ models:
   # Other examples: openai:<model-id>, openrouter:<vendor/model>, google-genai:<model-id>,
   #                 ollama:<local-model>, xai:<model-id>, mistralai:<model-id>, groq:<model-id>
 
-# temperature:            # optional per role; omitted values are not sent to the provider
+# temperature:            # optional per role; omitted values are not sent to the provider,
+#                         # and anthropic: models never get one (their API removed it)
 #   simulator: 0.7
 #   judge: 0
 

@@ -152,5 +152,5 @@ own `end_conversation` claim, and the runner overrides both when `max_turns` was
 `ProviderRegistry.configured(secrets)` limits the offer to providers whose environment variable is
 set; `listModels` fetches live model lists (10-minute cache, `examples` fallback). `LangChainModelFactory`
 builds models per role from `provider:model` references, applies `effortParams` (`src/config/effort.ts`)
-and the optional temperature, and sets the output-token limit to the model profile's maximum. The
-UI never sees secret values (ADR-0002).
+and the optional temperature (never sent to Anthropic: Claude API 2026-10-21 rejects it), and sets
+the output-token limit to the model profile's maximum. The UI never sees secret values (ADR-0002).
