@@ -657,19 +657,16 @@ Development follows TDD (red → green → refactor) with one Conventional Commi
    - push the tag: `git tag vx.y.z && git push origin vx.y.z`, or
    - Actions → Release → **Run workflow** on `main` with the version as input (works from the GitHub
      mobile app); the job creates the `vx.y.z` tag itself.
-   The job checks that the version matches `package.json`, builds, and runs
-   `npm publish --provenance --access public`.
-4. Credentials: the repository secret `NPM_TOKEN` must hold an npm granular access token with
-   *Read and write (publish and stage)* permission and *Bypass two-factor authentication* enabled.
-   With such a token npm **stages** the publish: the job ends green, but the version goes live only
-   after a maintainer approves it on npmjs.com (package → *Staged Packages* → Approve, with a 2FA
-   code) or with `npm stage approve <stage-id>` (npm ≥ 11.15). Without the secret the job fails at
-   `npm publish` and nothing is published.
-5. Recommended once the package exists: configure
-   [Trusted Publishing](https://docs.npmjs.com/trusted-publishers/) on npmjs.com for this repository
-   and workflow (`numikel/agent-evaluator`, `release.yml`). Then the `NODE_AUTH_TOKEN` line can be
-   removed from the workflow, the secret deleted, and releases publish directly without the staging
-   step. The first OIDC publish must happen within two days of configuring it.
+   The job checks that the version matches `package.json` and has a `CHANGELOG.md` section, builds,
+   runs `npm publish --provenance --access public`, and then creates the GitHub Release with that
+   section as its notes (`github-release.yml`, which can also be run by hand for an existing tag).
+4. Credentials: publishing uses [Trusted Publishing](https://docs.npmjs.com/trusted-publishers/).
+   On npmjs.com the package's trusted publisher is GitHub Actions with repository
+   `numikel/agent-evaluator` and workflow `release.yml`; npm then accepts the job's OIDC token, so
+   there is no npm token secret and the version goes live without a staging approval. The job needs
+   npm ≥ 11.5.1 (it upgrades npm when the runner's Node.js ships an older one). Without the trusted
+   publisher the job fails at `npm publish` and nothing is published (the tag may already exist;
+   running the workflow again publishes from it).
 
 ## Changelog
 

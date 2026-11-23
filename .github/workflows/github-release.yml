@@ -1,0 +1,47 @@
+name: GitHub Release
+
+# Creates the GitHub Release for an existing `vX.Y.Z` tag, with that version's CHANGELOG.md section
+# as its notes (scripts/release-notes.mjs). release.yml calls it after publishing to npm; it can
+# also be run by hand (Actions → GitHub Release → "Run workflow" on main) to add the release page
+# for a tag that already exists. It does nothing when the release page exists already.
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: "Version whose tag gets a release page (e.g. 0.1.4)"
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version whose tag gets a release page (e.g. 0.1.4)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Create the GitHub Release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Create the release from the CHANGELOG.md section
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          version="${VERSION#v}"
+          if gh release view "v${version}" >/dev/null 2>&1; then
+            echo "release v${version} already exists"
+            exit 0
+          fi
+          node scripts/release-notes.mjs "${version}" > "${RUNNER_TEMP}/release-notes.md"
+          gh release create "v${version}" --verify-tag \
+            --title "agent-evaluator ${version}" \
+            --notes-file "${RUNNER_TEMP}/release-notes.md"
